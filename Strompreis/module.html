@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        #bars {
+            display: flex;
+            align-items: flex-end;
+            height: calc(100% - 20px - 20px);
+        }
+
+        #prices {
+            height: 20px;
+            font-size: 12px;
+            margin-left: 5px;
+        }
+
+        #bars > div {
+            flex: 0 0 calc((100% - (24px * 2)) / 24);
+            margin-bottom: 1px;
+            margin-left: 1px;
+            margin-right: 1px;
+            background-image: linear-gradient(to top, #28cdab 5px, #1ecda3 10px, #17cd9a 20px, #17cd90 35px, #1ccd86 55px, #45cb71 80px, #5fc85c 105px, #76c546 120px, #9cbd1f 135px, #bfb100 150px, #e0a300 165px, #ff9000 180px);
+            text-align: right;
+            font-size: 12px;
+            writing-mode: vertical-lr;
+            color: #ffffff;
+            border-top-left-radius: 5px;
+            border-top-right-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: end;
+        }
+
+        #hours {
+            display: flex;
+            margin-bottom: 5px;
+            margin-top: 5px;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        #hours > div {
+            flex: 0 0 calc((100% - (24px * 2)) / 24);
+            margin-left: 1px;
+            margin-right: 1px;
+        }
+
+        #hours > div.current {
+            background-color: grey;
+            color: white;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div id="wrapper">
+        <div id="bars">
+            <!-- Will be filled through JavaScript -->
+        </div>
+        <div id="hours">
+            <!-- Will be filled through JavaScript -->
+        </div>
+        <div id="prices">
+            <span>Aktuell: <span id="price_cur">xx,xx&nbsp;ct</span></span>
+            <span style="color: green;">&nbsp;&nbsp;&nbsp;&darr; <span id="price_min">xx,xx&nbsp;ct</span></span>
+            <span style="color: red;">&nbsp;&nbsp;&nbsp;&uarr; <span id="price_max">xx,xx&nbsp;ct</span></span>
+            <span>&nbsp;&nbsp;&nbsp;&Oslash;<span id="price_avg">xx,xx&nbsp;ct</span></span>
+        </div>
+    </div>
+    <script type="text/javascript" charset="UTF-8">
+        let bars = document.getElementById("bars");
+        for(let i = 0; i < 24; i++) {
+            let bar = document.createElement('div');
+            bar.id = 'bar_' + i;
+            bar.innerHTML = 'xx,xx&nbsp;&nbsp;';
+            bar.style.height = Math.floor(Math.random() * 200);
+            bars.appendChild(bar);
+        }
+
+        let hours = document.getElementById("hours");
+        for(let i = 0; i < 24; i++) {
+            let hour = document.createElement('div');
+            hour.id = 'hour_' + i;
+            hour.innerHTML = i;
+            hours.appendChild(hour);
+        }
+
+        handleMessage('%market_data%');
+
+        function handleMessage(message) {
+            for(let i = 0; i < 24; i++) {
+                document.getElementById('hour_' + i).className = "";
+            }
+
+            const currentHour = new Date().getHours();
+            const data = JSON.parse(message);
+
+            let min_price = Number.MAX_VALUE;
+            let max_price = Number.MIN_VALUE;
+            let avg_price = 0;
+            for(let row of data) {
+                min_price = Math.min(min_price, row.price);
+                max_price = Math.max(max_price, row.price);
+                avg_price += row.price;
+            }
+            avg_price = avg_price / data.length;
+
+            let max_height = 100 / max_price;
+
+            let index = 0;
+            for(let row of data) {
+                let hour = (new Date(row.start*1000)).getHours();
+                // console.log(row.start, hour, row.price);
+                document.getElementById('hour_' + index).innerText = hour;
+                if (currentHour === hour) {
+                    document.getElementById('hour_' + index).className = "current";
+                    document.getElementById('price_cur').innerHTML = row.price.toFixed(2) + '&nbsp;ct';
+                }
+                document.getElementById('bar_' + index).style.height = Math.floor(row.price * max_height) + '%';
+                document.getElementById('bar_' + index).innerHTML = row.price.toFixed(2) + ' ct&nbsp;&nbsp;'
+                index++;
+                if (index >= 24) {
+                    break;
+                }
+            }
+            if (data.length > 0) {
+                document.getElementById('price_min').innerHTML = min_price.toFixed(2) + '&nbsp;ct';
+                document.getElementById('price_max').innerHTML = max_price.toFixed(2) + '&nbsp;ct';
+                document.getElementById('price_avg').innerHTML = avg_price.toFixed(2) + '&nbsp;ct';
+            }
+        }
+    </script>
+</body>
+</html>

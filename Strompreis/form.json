@@ -1,0 +1,47 @@
+{
+    "elements": [
+        {
+            "type": "Select",
+            "name": "Provider",
+            "options": [
+                {
+                    "caption": "aWATTar",
+                    "value": "aWATTar"
+                },
+                {
+                    "caption": "Epex Spot",
+                    "value": "EpexSpot"
+                }
+            ]
+        },
+        {
+            "type": "Label",
+            "caption": "Grundpreis für Netzentgelte, Umlagen, Abgaben, Steuern"
+        },
+        {
+            "type": "NumberSpinner",
+            "name": "PriceBase",
+            "caption": "Grundpreis",
+            "digits": 2,
+            "suffix": "cent/kWh"
+        },
+        {
+            "type": "Label",
+            "caption": "Aufschlag zum Epex Spot DE Marktpreis"
+        },
+        {
+            "type": "NumberSpinner",
+            "name": "PriceSurcharge",
+            "caption": "Aufschlag",
+            "digits": 2,
+            "suffix": "%"
+        }
+    ],
+    "actions": [
+        {
+            "type": "Button",
+            "caption": "Update",
+            "onClick": "SPX_Update($id);"
+        }
+    ]
+}
