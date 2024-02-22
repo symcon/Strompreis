@@ -3,6 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <style>
+        body {
+            overflow: hidden;
+        }
+
         #bars {
             display: flex;
             align-items: flex-end;
@@ -54,19 +58,17 @@
     </style>
 </head>
 <body>
-    <div id="wrapper">
-        <div id="bars">
-            <!-- Will be filled through JavaScript -->
-        </div>
-        <div id="hours">
-            <!-- Will be filled through JavaScript -->
-        </div>
-        <div id="prices">
-            <span>Aktuell: <span id="price_cur">xx,xx&nbsp;ct</span></span>
-            <span style="color: green;">&nbsp;&nbsp;&nbsp;&darr; <span id="price_min">xx,xx&nbsp;ct</span></span>
-            <span style="color: red;">&nbsp;&nbsp;&nbsp;&uarr; <span id="price_max">xx,xx&nbsp;ct</span></span>
-            <span>&nbsp;&nbsp;&nbsp;&Oslash;<span id="price_avg">xx,xx&nbsp;ct</span></span>
-        </div>
+    <div id="bars">
+        <!-- Will be filled through JavaScript -->
+    </div>
+    <div id="hours">
+        <!-- Will be filled through JavaScript -->
+    </div>
+    <div id="prices">
+        <span>Aktuell: <span id="price_cur">xx,xx&nbsp;ct</span></span>
+        <span style="color: green;">&nbsp;&nbsp;&nbsp;&darr; <span id="price_min">xx,xx&nbsp;ct</span></span>
+        <span style="color: red;">&nbsp;&nbsp;&nbsp;&uarr; <span id="price_max">xx,xx&nbsp;ct</span></span>
+        <span>&nbsp;&nbsp;&nbsp;&Oslash;<span id="price_avg">xx,xx&nbsp;ct</span></span>
     </div>
     <script type="text/javascript" charset="UTF-8">
         let bars = document.getElementById("bars");
