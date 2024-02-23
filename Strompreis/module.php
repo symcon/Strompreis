@@ -78,7 +78,7 @@
                 ];
                 switch($row->unit) {
                     case "Eur/MWh":
-                        $value["price"] = $base + (($row->marketprice / 10) * $surcharge);
+                        $value["price"] = $base + ((($row->marketprice * 1.19) / 10) * $surcharge);
                         break;
                     default:
                         $value["price"] = 0;
