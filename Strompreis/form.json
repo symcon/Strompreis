@@ -9,10 +9,102 @@
                     "value": "aWATTar"
                 },
                 {
-                    "caption": "EPEX Spot DE",
-                    "value": "EPEXSpotDE"
+                    "caption": "EPEX Spot",
+                    "value": "EPEXSpot"
                 }
-            ]
+            ],
+            "onChange": "SPX_UIChangeProvider($id, $Provider);"
+        },
+        {
+            "type": "Select",
+            "name": "EPEXSpotMarket",
+            "options": [
+                {
+                    "caption": "AT",
+                    "value": "AT"
+                },
+                {
+                    "caption": "BE",
+                    "value": "BE"
+                },
+                {
+                    "caption": "CH",
+                    "value": "CH"
+                },
+                {
+                    "caption": "DE-LU",
+                    "value": "DE-LU"
+                },
+                {
+                    "caption": "DK1",
+                    "value": "DK1"
+                },
+                {
+                    "caption": "DK2",
+                    "value": "DK2"
+                },
+                {
+                    "caption": "FI",
+                    "value": "FI"
+                },
+                {
+                    "caption": "FR",
+                    "value": "FR"
+                },
+                {
+                    "caption": "GB",
+                    "value": "GB"
+                },
+                {
+                    "caption": "NL",
+                    "value": "NL"
+                },
+                {
+                    "caption": "NO1",
+                    "value": "NO1"
+                },
+                {
+                    "caption": "NO2",
+                    "value": "NO2"
+                },
+                {
+                    "caption": "NO3",
+                    "value": "NO3"
+                },
+                {
+                    "caption": "NO4",
+                    "value": "NO4"
+                },
+                {
+                    "caption": "NO5",
+                    "value": "NO5"
+                },
+                {
+                    "caption": "PHELIX",
+                    "value": "PHELIX"
+                },
+                {
+                    "caption": "PL",
+                    "value": "PL"
+                },
+                {
+                    "caption": "SE1",
+                    "value": "SE1"
+                },
+                {
+                    "caption": "SE2",
+                    "value": "SE2"
+                },
+                {
+                    "caption": "SE3",
+                    "value": "SE3"
+                },
+                {
+                    "caption": "SE4",
+                    "value": "SE4"
+                }
+            ],
+            "visible": false
         },
         {
             "type": "Label",

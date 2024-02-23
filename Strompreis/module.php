@@ -6,6 +6,7 @@
         public function Create()
         {
             $this->RegisterPropertyString("Provider", "aWATTar");
+            $this->RegisterPropertyString("EPEXSpotMarket", "DE-LU");
             $this->RegisterPropertyFloat("PriceBase", 19.5);
             $this->RegisterPropertyFloat("PriceSurcharge", 3);
 
@@ -24,6 +25,12 @@
             $this->RegisterTimer("Update", 30000, 'SPX_Update($_IPS["TARGET"]);');
         }
 
+        public function GetConfigurationForm() {
+            $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
+            $form['elements'][1]['visible'] = $this->ReadPropertyString("Provider") === "EPEXSpot";
+            return json_encode($form);
+        }
+
         public function Update()
         {
             $marketData = "[]";
@@ -31,8 +38,8 @@
                 case "aWATTar":
                     $marketData = $this->FetchFromAwattar();
                     break;
-                case "EPEXSpotDE":
-                    $marketData = $this->FetchFromEpexSpot("de");
+                case "EPEXSpot":
+                    $marketData = $this->FetchFromEPEXSpot($this->ReadPropertyString("EPEXSpotMarket"));
                     break;
             }
             $this->UpdateVisualizationValue($marketData);
@@ -68,18 +75,9 @@
             return $module;
         }
 
-        private function FetchFromEpexSpot($market)
-        {
-            return "[]";
-        }
-
-        private function FetchFromAwattar()
+        private function NormalizeAndReduce($data)
         {
             $result = [];
-
-            $start = mktime(0, 0, 0, date("m"), date("d"), date("Y"));
-            $end = mktime(23, 59, 59, date("m"), date("d") + 1, date("Y"));
-            $data = file_get_contents(sprintf("https://api.awattar.de/v1/marketdata?start=%s&end=%s", $start * 1000, $end * 1000));
 
             $base = $this->ReadPropertyFloat("PriceBase");
             $surcharge = (100 + $this->ReadPropertyFloat("PriceSurcharge")) / 100;
@@ -94,34 +92,141 @@
              * }
              *
              */
-            $json = json_decode($data);
-            if (count($json->data) > 24) {
+            if (count($data) > 24) {
                 for($i = 0; $i < 48; $i++) {
-                    if (count($json->data)) {
-                        if (time() > ($json->data[0]->end_timestamp / 1000)) {
-                            array_shift($json->data);
+                    if (count($data)) {
+                        if (time() > ($data[0]['end_timestamp'] / 1000)) {
+                            array_shift($data);
                         }
                     }
                 }
             }
-            foreach($json->data as $row) {
+            foreach($data as $row) {
                 $value = [
-                    "start" => $row->start_timestamp / 1000,
-                    "end"   => $row->end_timestamp / 1000,
+                    "start" => $row['start_timestamp'] / 1000,
+                    "end"   => $row['end_timestamp'] / 1000,
                 ];
-                switch($row->unit) {
+                switch($row['unit']) {
                     case "Eur/MWh":
-                        $value["price"] = $base + ((($row->marketprice * 1.19) / 10) * $surcharge);
+                        $value["price"] = $base + ((($row['marketprice'] * 1.19) / 10) * $surcharge);
                         break;
                     default:
                         $value["price"] = 0;
                         break;
                 }
-
                 $result[] = $value;
             }
 
             return json_encode($result);
+        }
+
+        function FetchFromEPEXSpotEx($market, $trading_date, $delivery_date) {
+            $params = [
+                "market_area"   => $market,
+                "trading_date"  => $trading_date,
+                "delivery_date" => $delivery_date,
+                "modality"      => "Auction",
+                "sub_modality"  => "DayAhead",
+                "product"       => "60",
+                "data_mode"     => "table",
+                "ajax_form"     => "1",
+            ];
+
+            $opts = [
+                'http' => [
+                    'method'  => 'POST',
+                    'header'  => 'Content-Type: application/x-www-form-urlencoded',
+                    'content' => http_build_query([
+                        "form_id" => "market_data_filters_form",
+                        "_triggering_element_name" => "submit_js",
+                    ]),
+                ],
+            ];
+
+            $response = file_get_contents("https://www.epexspot.com/en/market-data?" . http_build_query($params), false, stream_context_create($opts));
+
+            $json = json_decode($response);
+
+            // HTML extrahieren
+            foreach ($json as $key => $value) {
+                if ($value->command == 'invoke' && $value->method == 'html' && $value->selector == '.js-md-widget') {
+                    $invoke = $value;
+                }
+            }
+
+            // Als HTML DOM laden
+            $doc = new DOMDocument();
+            @$doc->loadHTML($invoke->args[0]); // Das @-Zeichen unterdrückt Warnungen wegen fehlerhaftem HTML
+            $xpath = new DOMXPath($doc);
+
+            $table = [];
+
+            // Extrahieren der Stunden
+            $hours = $xpath->query('//div[contains(@class, "js-table-times")]//li/a');
+            foreach ($hours as $i => $hour) {
+                $table[$i] = [$hour->nodeValue];
+            }
+
+            // Extrahieren der Preis- und Volumendaten
+            $rows = $xpath->query('//div[contains(@class, "js-table-values")]//tr[contains(@class, "child")]');
+
+            $i = 0;
+            foreach ($rows as $row) {
+                $cells = $row->childNodes;
+                $rowData = [];
+                $j = 1;
+                foreach ($cells as $cell) {
+                    if ($cell instanceof DOMElement) {
+                        $table[$i][$j] = $cell->nodeValue;
+                        $j++;
+                    }
+                }
+                $i++;
+            }
+
+
+            // Daten zu unserem Zielformat konvertieren
+            $result = [];
+            foreach ($table as $row) {
+
+                $date = DateTime::createFromFormat('Y-m-d', $delivery_date);
+                list($startHour, $endHour) = explode(' - ', $row[0]);
+                $startTime = clone $date;
+                $startTime->setTime((int)$startHour, 0); // Stunden und Minuten setzen
+                $endTime = clone $date;
+                $endTime->setTime((int)$endHour, 0); // Stunden und Minuten setzen
+
+                $result[] = [
+                    "start_timestamp" => $startTime->getTimestamp() * 1000,
+                    "end_timestamp" => $endTime->getTimestamp() * 1000,
+                    "marketprice" => floatval($row[4]),
+                    "unit" => "Eur/MWh"
+                ];
+            }
+            return $result;
+        }
+
+        private function FetchFromEPEXSpot($market)
+        {
+            $data = [];
+            $data = array_merge($data, $this->FetchFromEpexSpotEx($market, date("Y-m-d", strtotime("-1 day")), date("Y-m-d")));
+            if (date("H") >= 14) {
+                $data = array_merge($data, $this->FetchFromEpexSpotEx($market, date("Y-m-d"), date("Y-m-d", strtotime("+1 day"))));
+            }
+            return $this->NormalizeAndReduce($data);
+        }
+
+        private function FetchFromAwattar()
+        {
+            $start = mktime(0, 0, 0, date("m"), date("d"), date("Y"));
+            $end = mktime(23, 59, 59, date("m"), date("d") + 1, date("Y"));
+            $data = file_get_contents(sprintf("https://api.awattar.de/v1/marketdata?start=%s&end=%s", $start * 1000, $end * 1000));
+            return $this->NormalizeAndReduce(json_decode($data, true)['data']);
+        }
+
+        public function UIChangeProvider(string $Provider)
+        {
+            $this->UpdateFormField("EPEXSpotMarket", "visible", $Provider === "EPEXSpot");
         }
     }
 ?>
