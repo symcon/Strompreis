@@ -21,11 +21,11 @@
         {
             $marketData = "[]";
             switch($this->ReadPropertyString("Provider")) {
-                case "EpexSpot":
-                    $marketData = $this->FetchFromEpexSpot();
-                    break;
                 case "aWATTar":
                     $marketData = $this->FetchFromAwattar();
+                    break;
+                case "EPEXSpotDE":
+                    $marketData = $this->FetchFromEpexSpot("de");
                     break;
             }
             $this->UpdateVisualizationValue($marketData);
@@ -48,7 +48,7 @@
             return $module;
         }
 
-        public function FetchFromEpexSpot()
+        public function FetchFromEpexSpot($market)
         {
             return "[]";
         }
