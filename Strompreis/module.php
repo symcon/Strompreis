@@ -68,12 +68,12 @@
             return $module;
         }
 
-        public function FetchFromEpexSpot($market)
+        private function FetchFromEpexSpot($market)
         {
             return "[]";
         }
 
-        public function FetchFromAwattar()
+        private function FetchFromAwattar()
         {
             $result = [];
 
