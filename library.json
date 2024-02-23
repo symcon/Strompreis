@@ -3,6 +3,9 @@
 	"author": "Michael Maroszek",
 	"name": "Strompreis",
 	"url": "www.maroszek.de",
+	"compatibility": {
+		"version": "7.1"
+	},
 	"version": "1.0",
 	"build": 0,
 	"date": 0
