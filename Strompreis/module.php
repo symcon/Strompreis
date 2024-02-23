@@ -56,7 +56,10 @@
         public function FetchFromAwattar()
         {
             $result = [];
-            $data = file_get_contents("https://api.awattar.de/v1/marketdata");
+
+            $start = mktime(0, 0, 0, date("m"), date("d"), date("Y"));
+            $end = mktime(23, 59, 59, date("m"), date("d") + 1, date("Y"));
+            $data = file_get_contents(sprintf("https://api.awattar.de/v1/marketdata?start=%s&end=%s", $start * 1000, $end * 1000));
 
             $base = $this->ReadPropertyFloat("PriceBase");
             $surcharge = (100 + $this->ReadPropertyFloat("PriceSurcharge")) / 100;
@@ -71,7 +74,17 @@
              * }
              *
              */
-            foreach(json_decode($data)->data as $row) {
+            $json = json_decode($data);
+            if (count($json->data) > 24) {
+                for($i = 0; $i < 48; $i++) {
+                    if (count($json->data)) {
+                        if (time() > ($json->data[0]->end_timestamp / 1000)) {
+                            array_shift($json->data);
+                        }
+                    }
+                }
+            }
+            foreach($json->data as $row) {
                 $value = [
                     "start" => $row->start_timestamp / 1000,
                     "end"   => $row->end_timestamp / 1000,
