@@ -9,7 +9,14 @@
             $this->RegisterPropertyFloat("PriceBase", 19.5);
             $this->RegisterPropertyFloat("PriceSurcharge", 3);
 
+            if (!IPS_VariableProfileExists("EuroCent")) {
+                IPS_CreateVariableProfile("EuroCent", 2);
+                IPS_SetVariableProfileDigits("EuroCent", 2);
+                IPS_SetVariableProfileText("EuroCent", "", " ct");
+            }
+
             $this->RegisterVariableString("MarketData", $this->Translate("Market Data"), "~TextBox", 0);
+            $this->RegisterVariableFloat("CurrentPrice", $this->Translate("Current Price"), "EuroCent", 1);
 
             $this->SetVisualizationType(1);
 
@@ -30,6 +37,19 @@
             }
             $this->UpdateVisualizationValue($marketData);
             $this->SetValue("MarketData", $marketData);
+
+            $currentTime = time();
+            $found = false;
+            foreach (json_decode($marketData) as $row) {
+                if ($currentTime >= $row->start && $currentTime <= $row->end) {
+                    $this->SetValue("CurrentPrice", $row->price);
+                    $found = true;
+                    break;
+                }
+            }
+            if (!$found) {
+                $this->SetValue("CurrentPrice", 999.99);
+            }
 
             // Synchronize to xx:00:30
             $waitTime = (3600 * 1000) - ((microtime(true)*1000) % (3600 * 1000)) + (30 * 1000);
