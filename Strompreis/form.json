@@ -17,6 +17,21 @@
         },
         {
             "type": "Select",
+            "name": "aWATTarMarket",
+            "options": [
+                {
+                    "caption": "DE",
+                    "value": "de"
+                },
+                {
+                    "caption": "AT",
+                    "value": "at"
+                }
+            ],
+            "visible": false
+        },
+        {
+            "type": "Select",
             "name": "EPEXSpotMarket",
             "options": [
                 {

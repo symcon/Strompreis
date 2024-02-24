@@ -7,6 +7,7 @@
         {
             $this->RegisterPropertyString("Provider", "aWATTar");
             $this->RegisterPropertyString("EPEXSpotMarket", "DE-LU");
+            $this->RegisterPropertyString("aWATTarMarket", "de");
             $this->RegisterPropertyFloat("PriceBase", 19.5);
             $this->RegisterPropertyFloat("PriceSurcharge", 3);
 
@@ -27,7 +28,8 @@
 
         public function GetConfigurationForm() {
             $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
-            $form['elements'][1]['visible'] = $this->ReadPropertyString("Provider") === "EPEXSpot";
+            $form['elements'][1]['visible'] = $this->ReadPropertyString("Provider") === "aWATTar";
+            $form['elements'][2]['visible'] = $this->ReadPropertyString("Provider") === "EPEXSpot";
             return json_encode($form);
         }
 
@@ -36,7 +38,7 @@
             $marketData = "[]";
             switch($this->ReadPropertyString("Provider")) {
                 case "aWATTar":
-                    $marketData = $this->FetchFromAwattar();
+                    $marketData = $this->FetchFromAwattar($this->ReadPropertyString("aWATTarMarket"));
                     break;
                 case "EPEXSpot":
                     $marketData = $this->FetchFromEPEXSpot($this->ReadPropertyString("EPEXSpotMarket"));
@@ -216,16 +218,17 @@
             return $this->NormalizeAndReduce($data);
         }
 
-        private function FetchFromAwattar()
+        private function FetchFromAwattar($market)
         {
             $start = mktime(0, 0, 0, date("m"), date("d"), date("Y"));
             $end = mktime(23, 59, 59, date("m"), date("d") + 1, date("Y"));
-            $data = file_get_contents(sprintf("https://api.awattar.de/v1/marketdata?start=%s&end=%s", $start * 1000, $end * 1000));
+            $data = file_get_contents(sprintf("https://api.awattar.%s/v1/marketdata?start=%s&end=%s", $market, $start * 1000, $end * 1000));
             return $this->NormalizeAndReduce(json_decode($data, true)['data']);
         }
 
         public function UIChangeProvider(string $Provider)
         {
+            $this->UpdateFormField("aWATTarMarket", "visible", $Provider === "aWATTar");
             $this->UpdateFormField("EPEXSpotMarket", "visible", $Provider === "EPEXSpot");
         }
     }

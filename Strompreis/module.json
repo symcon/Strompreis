@@ -7,7 +7,7 @@
 	[
 		"Strompreis (Vorhersage)",
 		"Strompreis (aWATTar)",
-		"Strompreis (Epex Spot DE)"
+		"Strompreis (EPEX Spot)"
 	],
 	"parentRequirements": [],
 	"childRequirements": [],
