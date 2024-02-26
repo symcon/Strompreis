@@ -11,14 +11,14 @@
             $this->RegisterPropertyFloat("PriceBase", 19.5);
             $this->RegisterPropertyFloat("PriceSurcharge", 3);
 
-            if (!IPS_VariableProfileExists("EuroCent")) {
-                IPS_CreateVariableProfile("EuroCent", 2);
-                IPS_SetVariableProfileDigits("EuroCent", 2);
-                IPS_SetVariableProfileText("EuroCent", "", " ct");
+            if (!IPS_VariableProfileExists("Cent")) {
+                IPS_CreateVariableProfile("Cent", 2);
+                IPS_SetVariableProfileDigits("Cent", 2);
+                IPS_SetVariableProfileText("Cent", "", " ct");
             }
 
             $this->RegisterVariableString("MarketData", $this->Translate("Market Data"), "~TextBox", 0);
-            $this->RegisterVariableFloat("CurrentPrice", $this->Translate("Current Price"), "EuroCent", 1);
+            $this->RegisterVariableFloat("CurrentPrice", $this->Translate("Current Price"), "Cent", 1);
 
             $this->SetVisualizationType(1);
 
