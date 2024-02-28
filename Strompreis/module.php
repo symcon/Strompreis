@@ -122,7 +122,7 @@
             return json_encode($result);
         }
 
-        function FetchFromEPEXSpotEx($market, $trading_date, $delivery_date) {
+        private function FetchFromEPEXSpotEx($market, $trading_date, $delivery_date) {
             $params = [
                 "market_area"   => $market,
                 "trading_date"  => $trading_date,
