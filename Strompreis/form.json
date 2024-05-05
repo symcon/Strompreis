@@ -142,6 +142,13 @@
             "caption": "Aufschlag",
             "digits": 2,
             "suffix": "%"
+        },
+        {
+            "type": "NumberSpinner",
+            "name": "PriceTax",
+            "caption": "Steuersatz",
+            "digits": 1,
+            "suffix": "%"
         }
     ],
     "actions": [

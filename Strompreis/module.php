@@ -10,6 +10,7 @@
             $this->RegisterPropertyString("aWATTarMarket", "de");
             $this->RegisterPropertyFloat("PriceBase", 19.5);
             $this->RegisterPropertyFloat("PriceSurcharge", 3);
+            $this->RegisterPropertyFloat("PriceTax", 19);
 
             if (!IPS_VariableProfileExists("Cent")) {
                 IPS_CreateVariableProfile("Cent", 2);
@@ -110,7 +111,7 @@
                 ];
                 switch($row['unit']) {
                     case "Eur/MWh":
-                        $value["price"] = $base + ((($row['marketprice'] * 1.19) / 10) * $surcharge);
+                        $value["price"] = $base + ((($row['marketprice'] * (1 + ($this->ReadPropertyFloat("PriceTax") / 100))) / 10) * $surcharge);
                         break;
                     default:
                         $value["price"] = 0;
