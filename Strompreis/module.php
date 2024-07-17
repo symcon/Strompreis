@@ -8,6 +8,7 @@
             $this->RegisterPropertyString("Provider", "aWATTar");
             $this->RegisterPropertyString("EPEXSpotMarket", "DE-LU");
             $this->RegisterPropertyString("aWATTarMarket", "de");
+            $this->RegisterPropertyString("TibberPostalCode", "23554");
             $this->RegisterPropertyFloat("PriceBase", 19.5);
             $this->RegisterPropertyFloat("PriceSurcharge", 3);
             $this->RegisterPropertyFloat("PriceTax", 19);
@@ -30,7 +31,15 @@
         public function GetConfigurationForm() {
             $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
             $form['elements'][1]['visible'] = $this->ReadPropertyString("Provider") === "aWATTar";
-            $form['elements'][2]['visible'] = $this->ReadPropertyString("Provider") === "EPEXSpot";
+            $form['elements'][2]['visible'] = $this->ReadPropertyString("Provider") === "Tibber";
+            $form['elements'][3]['visible'] = $this->ReadPropertyString("Provider") === "EPEXSpot";
+
+            // Tibber includes full price information
+            $form['elements'][4]['visible'] = $this->ReadPropertyString("Provider") != "Tibber";
+            $form['elements'][5]['visible'] = $this->ReadPropertyString("Provider") != "Tibber";
+            $form['elements'][6]['visible'] = $this->ReadPropertyString("Provider") != "Tibber";
+            $form['elements'][7]['visible'] = $this->ReadPropertyString("Provider") != "Tibber";
+            $form['elements'][8]['visible'] = $this->ReadPropertyString("Provider") != "Tibber";
             return json_encode($form);
         }
 
@@ -40,6 +49,9 @@
             switch($this->ReadPropertyString("Provider")) {
                 case "aWATTar":
                     $marketData = $this->FetchFromAwattar($this->ReadPropertyString("aWATTarMarket"));
+                    break;
+                case "Tibber":
+                    $marketData = $this->FetchFromTibber($this->ReadPropertyString("TibberPostalCode"));
                     break;
                 case "EPEXSpot":
                     $marketData = $this->FetchFromEPEXSpot($this->ReadPropertyString("EPEXSpotMarket"));
@@ -227,10 +239,33 @@
             return $this->NormalizeAndReduce(json_decode($data, true)['data']);
         }
 
+        private function FetchFromTibber($postalCode)
+        {
+            $data = file_get_contents(sprintf("https://tibber.com/de/api/lookup/price-overview?postalCode=%s", $postalCode));
+            $energy = json_decode($data, true)['energy']['todayHours'];
+            $result = [];
+            foreach ($energy as $hour) {
+                $date = explode("-", $hour['date']);
+                $result[] = [
+                    "start" => mktime($hour["hour"], 0, 0, $date[1], $date[2], $date[0]),
+                    "end" => mktime($hour["hour"] + 1, 0, 0, $date[1], $date[2], $date[0]),
+                    "price" => $hour['priceIncludingVat'],
+                ];
+            }
+            return json_encode($result);
+        }
+
         public function UIChangeProvider(string $Provider)
         {
             $this->UpdateFormField("aWATTarMarket", "visible", $Provider === "aWATTar");
+            $this->UpdateFormField("TibberPostalCode", "visible", $Provider === "Tibber");
             $this->UpdateFormField("EPEXSpotMarket", "visible", $Provider === "EPEXSpot");
+
+            $this->UpdateFormField("PriceHint", "visible", $Provider != "Tibber");
+            $this->UpdateFormField("PriceBase", "visible", $Provider != "Tibber");
+            $this->UpdateFormField("PricePremiumHint", "visible", $Provider != "Tibber");
+            $this->UpdateFormField("PriceSurcharge", "visible", $Provider != "Tibber");
+            $this->UpdateFormField("PriceTax", "visible", $Provider != "Tibber");
         }
     }
 ?>

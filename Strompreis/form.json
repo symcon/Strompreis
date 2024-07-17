@@ -3,10 +3,15 @@
         {
             "type": "Select",
             "name": "Provider",
+            "caption": "Provider",
             "options": [
                 {
                     "caption": "aWATTar",
                     "value": "aWATTar"
+                },
+                {
+                    "caption": "Tibber",
+                    "value": "Tibber"
                 },
                 {
                     "caption": "EPEX Spot",
@@ -18,6 +23,7 @@
         {
             "type": "Select",
             "name": "aWATTarMarket",
+            "caption": "Market",
             "options": [
                 {
                     "caption": "DE",
@@ -31,8 +37,15 @@
             "visible": false
         },
         {
+            "type": "ValidationTextBox",
+            "caption": "Post Code",
+            "name": "TibberPostalCode",
+            "visible": false
+        },
+        {
             "type": "Select",
             "name": "EPEXSpotMarket",
+            "caption": "Market",
             "options": [
                 {
                     "caption": "AT",
@@ -123,30 +136,32 @@
         },
         {
             "type": "Label",
-            "caption": "Grundpreis für Netzentgelte, Umlagen, Abgaben, Steuern"
+            "name": "PriceHint",
+            "caption": "Base price for grid fees, levies, charges and taxes"
         },
         {
             "type": "NumberSpinner",
             "name": "PriceBase",
-            "caption": "Grundpreis",
+            "caption": "Base price",
             "digits": 2,
             "suffix": "cent/kWh"
         },
         {
             "type": "Label",
-            "caption": "Aufschlag zum Epex Spot DE Marktpreis"
+            "name": "PricePremiumHint",
+            "caption": "Price Premium on the market price"
         },
         {
             "type": "NumberSpinner",
             "name": "PriceSurcharge",
-            "caption": "Aufschlag",
+            "caption": "Price Premium",
             "digits": 2,
             "suffix": "%"
         },
         {
             "type": "NumberSpinner",
             "name": "PriceTax",
-            "caption": "Steuersatz",
+            "caption": "Tax rate",
             "digits": 1,
             "suffix": "%"
         }
