@@ -1,12 +1,12 @@
 {
-	"id": "{55367E6F-D321-A9D8-9F89-49636EFE65B8}",
-	"author": "Symcon",
-	"name": "Strompreis",
-	"url": "https://www.symcon.de",
-	"compatibility": {
-		"version": "7.1"
-	},
-	"version": "1.0",
-	"build": 0,
-	"date": 0
+    "id": "{55367E6F-D321-A9D8-9F89-49636EFE65B8}",
+    "author": "Symcon",
+    "name": "Strompreis",
+    "url": "https://www.symcon.de",
+    "compatibility": {
+        "version": "7.1"
+    },
+    "version": "1.0",
+    "build": 0,
+    "date": 0
 }

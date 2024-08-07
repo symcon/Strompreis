@@ -1,17 +1,16 @@
 {
-	"id": "{9354E28B-4E62-AEE5-8F88-BECA9F3F4F8F}",
-	"name": "PowerPrice",
-	"type": 3,
-	"vendor": "",
-	"aliases": 
-	[
-		"PowerPrice (Forecast)",
-		"PowerPrice (aWATTar)",
-		"PowerPrice (EPEX Spot)"
-	],
-	"url": "https://www.symcon.de/en/service/documentation/module-reference/power-price",
-	"parentRequirements": [],
-	"childRequirements": [],
-	"implemented": [],
-	"prefix": "SPX"
+    "id": "{9354E28B-4E62-AEE5-8F88-BECA9F3F4F8F}",
+    "name": "PowerPrice",
+    "type": 3,
+    "vendor": "",
+    "aliases": [
+        "PowerPrice (Forecast)",
+        "PowerPrice (aWATTar)",
+        "PowerPrice (EPEX Spot)"
+    ],
+    "url": "https://www.symcon.de/en/service/documentation/module-reference/power-price",
+    "parentRequirements": [],
+    "childRequirements": [],
+    "implemented": [],
+    "prefix": "SPX"
 }
