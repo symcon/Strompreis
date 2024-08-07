@@ -1,0 +1,22 @@
+{
+    "translations": {
+        "de": {
+            "Provider": "Anbieter",
+            "Update": "Aktualisieren",
+            "Market": "Markt",
+            "Post Code": "Postleitzahl",
+            "Base price": "Grundpreis",
+            "Base price for grid fees, levies, charges and taxes": "Grundpreis für Netzentgelte, Umlagen, Abgaben, Steuern",
+            "Price Premium on the market price": "Aufschlag zum Marktpreis",
+            "Price Premium": "Aufschlag",
+            "Tax rate": "Steuersatz",
+            "PowerPrice": "Strompreis",
+            "PowerPrice (Forecast)": "Strompreis (Vorhersage)",
+            "PowerPrice (aWATTar)": "Strompreis (aWATTar)",
+            "PowerPrice (EPEX Spot)": "Strompreis (EPEXSpot)",
+            "Market Data": "Marktdaten",
+            "Current Price": "Aktueller Preis",
+            "https://www.symcon.de/en/service/documentation/module-reference/power-price": "https://www.symcon.de/de/service/dokumentation/modulreferenz/strompreis"
+        }
+    }
+}
