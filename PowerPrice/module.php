@@ -264,7 +264,7 @@ class PowerPrice extends IPSModule
             $result[] = [
                 'start' => mktime($hour['hour'], 0, 0, intval($date[1]), intval($date[2]), intval($date[0])),
                 'end'   => mktime($hour['hour'] + 1, 0, 0, intval($date[1]), intval($date[2]), intval($date[0])),
-                'price' => $hour['priceIncludingVat'],
+                'price' => $hour['priceIncludingVat'] * 100,
             ];
         }
         return json_encode($result);
