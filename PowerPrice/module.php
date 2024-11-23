@@ -174,7 +174,7 @@ class PowerPrice extends IPSModule
             ],
         ];
 
-        $response = file_get_contents('https://www.epexspot.com/en/market-data?' . http_build_query($params), false, stream_context_create($opts));
+        $response = file_get_contents('https://www.epexspot.com/en/market-results?' . http_build_query($params), false, stream_context_create($opts));
 
         $json = json_decode($response);
 
