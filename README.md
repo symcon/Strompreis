@@ -5,5 +5,5 @@
 
 Folgende Module beinhaltet das Strompreis Repository:
 
-- __Strompreis__ ([Dokumentation](https://www.symcon.de/de/service/dokumentation/modulreferenz/strompreis))  
+- __Strompreis__ ([Dokumentation](https://www.symcon.de/de/service/dokumentation/modulreferenz/stromabrechnungsmodul/))  
 Liest die aktuellen/vorhergesagten Strompreise von aWATTar, Tibber oder Epex Spot DE aus.
