@@ -174,7 +174,9 @@ class PowerPrice extends IPSModule
             ],
         ];
 
+        $this->SendDebug('FetchFromEPEX - Parameters', $params, 0);
         $response = file_get_contents('https://www.epexspot.com/en/market-results?' . http_build_query($params), false, stream_context_create($opts));
+        $this->SendDebug('FetchFromEPEX - Response', $response, 0);
 
         $json = json_decode($response);
 
@@ -250,13 +252,17 @@ class PowerPrice extends IPSModule
     {
         $start = mktime(0, 0, 0, intval(date('m')), intval(date('d')), intval(date('Y')));
         $end = mktime(0, 0, 0, intval(date('m')), intval(date('d') + 1), intval(date('Y')));
+        $this->SendDebug('FetchFromAwattar - Request', "Fetching data from $market between " . date('Y-m-d H:i:s', $start) . "($start) and " . date('Y-m-d H:i:s', $end) . "($end)", 0);
         $data = file_get_contents(sprintf('https://api.awattar.%s/v1/marketdata?start=%s&end=%s', $market, $start * 1000, $end * 1000));
+        $this->SendDebug('FetchFromAwattar - Result', $data, 0);
         return $this->NormalizeAndReduce(json_decode($data, true)['data']);
     }
 
     private function FetchFromTibber($postalCode)
     {
+        $this->SendDebug('FetchFromTibber - Postal Code', $postalCode, 0);
         $data = file_get_contents(sprintf('https://tibber.com/de/api/lookup/price-overview?postalCode=%s', $postalCode));
+        $this->SendDebug('FetchFromTibber - Result', $data, 0);
         $energy = json_decode($data, true)['energy']['todayHours'];
         $result = [];
         foreach ($energy as $hour) {
