@@ -135,6 +135,21 @@
             "visible": false
         },
         {
+            "type": "Select",
+            "name": "PriceResolution",
+            "caption": "Price resolution",
+            "options": [
+                {
+                    "caption": "15 Minutes",
+                    "value": 15
+                },
+                {
+                    "caption": "60 Minutes",
+                    "value": 60
+                }
+            ]
+        },
+        {
             "type": "Label",
             "name": "PriceHint",
             "caption": "Base price for grid fees, levies, charges and taxes"

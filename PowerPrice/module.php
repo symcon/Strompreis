@@ -10,6 +10,7 @@ class PowerPrice extends IPSModule
         $this->RegisterPropertyString('EPEXSpotMarket', 'DE-LU');
         $this->RegisterPropertyString('aWATTarMarket', 'de');
         $this->RegisterPropertyString('TibberPostalCode', '23554');
+        $this->RegisterPropertyInteger('PriceResolution', 60);
         $this->RegisterPropertyFloat('PriceBase', 19.5);
         $this->RegisterPropertyFloat('PriceSurcharge', 3);
         $this->RegisterPropertyFloat('PriceTax', 19);
@@ -36,12 +37,15 @@ class PowerPrice extends IPSModule
         $form['elements'][2]['visible'] = $this->ReadPropertyString('Provider') === 'Tibber';
         $form['elements'][3]['visible'] = $this->ReadPropertyString('Provider') === 'EPEXSpot';
 
+        // 15 Minute Resolution is only available for Tibber/EPEX Sport
+        $form['elements'][4]['visible'] = in_array($this->ReadPropertyString('Provider'), ['Tibber', 'EPEXSpot']);
+
         // Tibber includes full price information
-        $form['elements'][4]['visible'] = $this->ReadPropertyString('Provider') != 'Tibber';
         $form['elements'][5]['visible'] = $this->ReadPropertyString('Provider') != 'Tibber';
         $form['elements'][6]['visible'] = $this->ReadPropertyString('Provider') != 'Tibber';
         $form['elements'][7]['visible'] = $this->ReadPropertyString('Provider') != 'Tibber';
         $form['elements'][8]['visible'] = $this->ReadPropertyString('Provider') != 'Tibber';
+        $form['elements'][9]['visible'] = $this->ReadPropertyString('Provider') != 'Tibber';
         return json_encode($form);
     }
 
@@ -263,14 +267,21 @@ class PowerPrice extends IPSModule
         $this->SendDebug('FetchFromTibber - Postal Code', $postalCode, 0);
         $data = file_get_contents(sprintf('https://tibber.com/de/api/lookup/price-overview?postalCode=%s', $postalCode));
         $this->SendDebug('FetchFromTibber - Result', $data, 0);
-        $energy = json_decode($data, true)['energy']['todayHours'];
+        switch($this->ReadPropertyInteger('PriceResolution')) {
+            case 15:
+                $energy = json_decode($data, true)['energy']['todayQuarterHours'];
+                break;
+            case 60:
+                $energy = json_decode($data, true)['energy']['todayHours'];
+                break;
+        }
         $result = [];
-        foreach ($energy as $hour) {
-            $date = explode('-', $hour['date']);
+        foreach ($energy as $data) {
+            $date = explode('-', $data['date']);
             $result[] = [
-                'start' => mktime($hour['hour'], 0, 0, intval($date[1]), intval($date[2]), intval($date[0])),
-                'end'   => mktime($hour['hour'] + 1, 0, 0, intval($date[1]), intval($date[2]), intval($date[0])),
-                'price' => $hour['priceIncludingVat'] * 100,
+                'start' => mktime($data['hour'], $data['minute'], 0, intval($date[1]), intval($date[2]), intval($date[0])),
+                'end'   => mktime($data['hour'] + 1, $data['minute'], 0, intval($date[1]), intval($date[2]), intval($date[0])),
+                'price' => $data['priceIncludingVat'] * 100,
             ];
         }
         return json_encode($result);
