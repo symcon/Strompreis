@@ -102,6 +102,10 @@ class PowerPrice extends IPSModule
         $this->UpdateFormField('TibberPostalCode', 'visible', $Provider === 'Tibber');
         $this->UpdateFormField('EPEXSpotMarket', 'visible', $Provider === 'EPEXSpot');
 
+        $this->UpdateFormField('PriceResolution', 'visible', $Provider != 'aWATTar');
+        if ($Provider == 'aWATTar') {
+            $this->UpdateFormField('PriceResolution', 'value', 60);
+        }
         $this->UpdateFormField('PriceHint', 'visible', $Provider != 'Tibber');
         $this->UpdateFormField('PriceBase', 'visible', $Provider != 'Tibber');
         $this->UpdateFormField('PricePremiumHint', 'visible', $Provider != 'Tibber');
