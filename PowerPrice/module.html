@@ -25,7 +25,7 @@
         }
 
         #bars > div {
-            flex: 0 0 calc((100% - (24px * 2)) / 24);
+            flex: 0 0 calc(((100% - (2 * 24px * (60/%price_resolution%)))) / (24 * (60/%price_resolution%)));
             margin-bottom: 1px;
             margin-left: 1px;
             margin-right: 1px;
@@ -78,11 +78,16 @@
         </div>
     </div>
     <script type="text/javascript" charset="UTF-8">
+        let price_resolution = parseInt('%price_resolution%');
+        let maxBarCount = (24 * (60 / price_resolution));
+
         let bars = document.getElementById("bars");
-        for(let i = 0; i < 24; i++) {
+        for(let i = 0; i < maxBarCount; i++) {
             let bar = document.createElement('div');
             bar.id = 'bar_' + i;
-            bar.innerHTML = 'xx,xx&nbsp;&nbsp;';
+            if (price_resolution == 60) {
+                bar.innerHTML = 'xx,xx&nbsp;&nbsp;';
+            }
             bar.style.height = Math.floor(Math.random() * 200);
             bars.appendChild(bar);
         }
@@ -99,7 +104,11 @@
 
         function handleMessage(message) {
             for(let i = 0; i < 24; i++) {
+                document.getElementById('hour_' + i).innerText = i + 1;
                 document.getElementById('hour_' + i).className = "";
+                if ((new Date()).getHours() === i + 1) {
+                    document.getElementById('hour_' + i).className = "current";
+                }
             }
 
             const currentHour = new Date().getHours();
@@ -119,17 +128,21 @@
 
             let index = 0;
             for(let row of data) {
-                let hour = (new Date(row.start*1000)).getHours();
+                let ts = new Date(row.start*1000);
+                let hour = ts.getHours();
                 // console.log(row.start, hour, row.price);
-                document.getElementById('hour_' + index).innerText = hour;
                 if (currentHour === hour) {
-                    document.getElementById('hour_' + index).className = "current";
                     document.getElementById('price_cur').innerHTML = row.price.toFixed(2) + '&nbsp;ct';
                 }
                 document.getElementById('bar_' + index).style.height = Math.floor(row.price * max_height) + '%';
-                document.getElementById('bar_' + index).innerHTML = row.price.toFixed(2) + ' ct&nbsp;&nbsp;'
+                if (price_resolution == 60) {
+                    document.getElementById('bar_' + index).innerHTML = row.price.toFixed(2) + ' ct&nbsp;&nbsp;';
+                }
+                else {
+                    document.getElementById('bar_' + index).title = row.price.toFixed(2) + ' ct (' + (ts.getHours() + 1).toString().padStart(2, '0') + ':' + ts.getMinutes().toString().padStart(2, '0') + ')';
+                }
                 index++;
-                if (index >= 24) {
+                if (index >= maxBarCount) {
                     break;
                 }
             }

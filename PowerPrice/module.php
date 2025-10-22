@@ -92,6 +92,9 @@ class PowerPrice extends IPSModule
         // Inject current values
         $module = str_replace('%market_data%', $this->GetValue('MarketData'), $module);
 
+        // Inject resolution configuration
+        $module = str_replace('%price_resolution%', strval($this->ReadPropertyInteger('PriceResolution')), $module);
+
         // Return everything to render our fancy tile!
         return $module;
     }
