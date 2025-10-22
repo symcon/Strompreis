@@ -166,7 +166,7 @@ class PowerPrice extends IPSModule
             'delivery_date' => $delivery_date,
             'modality'      => 'Auction',
             'sub_modality'  => 'DayAhead',
-            'product'       => '60',
+            'product'       => strval($this->ReadPropertyInteger('PriceResolution')),
             'data_mode'     => 'table',
         ];
 
@@ -217,11 +217,13 @@ class PowerPrice extends IPSModule
         foreach ($table as $row) {
 
             $date = DateTime::createFromFormat('Y-m-d', $delivery_date);
-            list($startHour, $endHour) = explode(' - ', $row[0]);
+            list($startString, $endString) = explode(' - ', $row[0]);
+            $startSplit = explode(':', $startString);
             $startTime = clone $date;
-            $startTime->setTime((int) $startHour, 0); // Stunden und Minuten setzen
+            $startTime->setTime((int) $startSplit[0], count($startSplit) > 1 ? (int) $startSplit[1] : 0); // Stunden und Minuten setzen
+            $endSplit = explode(':', $endString);
             $endTime = clone $date;
-            $endTime->setTime((int) $endHour, 0); // Stunden und Minuten setzen
+            $endTime->setTime((int) $endSplit, count($endSplit) > 1 ? (int) $endSplit[1] : 0); // Stunden und Minuten setzen
 
             $result[] = [
                 'start_timestamp' => $startTime->getTimestamp() * 1000,
