@@ -17,6 +17,8 @@
             "Market Data": "Marktdaten",
             "Current Price": "Aktueller Preis",
             "Price resolution": "Preisauflösung",
+            "15 Minutes": "15 Minuten",
+            "60 Minutes": "60 Minuten",
             "https://www.symcon.de/en/service/documentation/module-reference/power-price": "https://www.symcon.de/de/service/dokumentation/modulreferenz/strompreis"
         }
     }
