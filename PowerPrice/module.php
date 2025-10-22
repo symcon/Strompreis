@@ -168,36 +168,23 @@ class PowerPrice extends IPSModule
             'sub_modality'  => 'DayAhead',
             'product'       => '60',
             'data_mode'     => 'table',
-            'ajax_form'     => '1',
         ];
 
         $opts = [
             'http' => [
                 'method'  => 'POST',
-                'header'  => 'Content-Type: application/x-www-form-urlencoded',
-                'content' => http_build_query([
-                    'form_id'                  => 'market_data_filters_form',
-                    '_triggering_element_name' => 'submit_js',
-                ]),
+                'header'  => 'Content-Type: application/x-www-form-urlencoded' . "\r\n" .
+                             'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             ],
         ];
 
-        $this->SendDebug('FetchFromEPEX - Parameters', $params, 0);
+        $this->SendDebug('FetchFromEPEX - Parameters', json_encode($params), 0);
         $response = file_get_contents('https://www.epexspot.com/en/market-results?' . http_build_query($params), false, stream_context_create($opts));
         $this->SendDebug('FetchFromEPEX - Response', $response, 0);
 
-        $json = json_decode($response);
-
-        // HTML extrahieren
-        foreach ($json as $key => $value) {
-            if ($value->command == 'invoke' && $value->method == 'html' && $value->selector == '.js-md-widget') {
-                $invoke = $value;
-            }
-        }
-
         // Als HTML DOM laden
         $doc = new DOMDocument();
-        @$doc->loadHTML($invoke->args[0]); // Das @-Zeichen unterdrückt Warnungen wegen fehlerhaftem HTML
+        @$doc->loadHTML($response); // Das @-Zeichen unterdrückt Warnungen wegen fehlerhaftem HTML
         $xpath = new DOMXPath($doc);
 
         $table = [];
