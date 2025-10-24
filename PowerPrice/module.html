@@ -78,12 +78,12 @@
         </div>
     </div>
     <script type="text/javascript" charset="UTF-8">
-        let price_resolution = parseInt('%price_resolution%');
-        let maxBarCount = (24 * (60 / price_resolution));
+        const price_resolution = parseInt('%price_resolution%');
+        const maxBarCount = (24 * (60 / price_resolution));
 
-        let bars = document.getElementById("bars");
+        const bars = document.getElementById("bars");
         for(let i = 0; i < maxBarCount; i++) {
-            let bar = document.createElement('div');
+            const bar = document.createElement('div');
             bar.id = 'bar_' + i;
             if (price_resolution == 60) {
                 bar.innerHTML = 'xx,xx&nbsp;&nbsp;';
@@ -92,9 +92,9 @@
             bars.appendChild(bar);
         }
 
-        let hours = document.getElementById("hours");
+        const hours = document.getElementById("hours");
         for(let i = 0; i < 24; i++) {
-            let hour = document.createElement('div');
+            const hour = document.createElement('div');
             hour.id = 'hour_' + i;
             hour.innerHTML = i;
             hours.appendChild(hour);
@@ -124,7 +124,7 @@
             }
             avg_price = avg_price / data.length;
 
-            let max_height = 100 / max_price;
+            const max_height = 100 / max_price;
 
             for(let row of data) {
                 const ts = new Date(row.start*1000);
