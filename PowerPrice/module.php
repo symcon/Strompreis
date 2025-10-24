@@ -226,7 +226,7 @@ class PowerPrice extends IPSModule
             $startTime->setTime((int) $startSplit[0], count($startSplit) > 1 ? (int) $startSplit[1] : 0); // Stunden und Minuten setzen
             $endSplit = explode(':', $endString);
             $endTime = clone $date;
-            $endTime->setTime((int) $endSplit, count($endSplit) > 1 ? (int) $endSplit[1] : 0); // Stunden und Minuten setzen
+            $endTime->setTime((int) $endSplit[0], count($endSplit) > 1 ? (int) $endSplit[1] : 0); // Stunden und Minuten setzen
 
             $result[] = [
                 'start_timestamp' => $startTime->getTimestamp() * 1000,
