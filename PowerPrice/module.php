@@ -133,13 +133,17 @@ class PowerPrice extends IPSModule
          * }
          *
          */
-        if (count($data) > 24) {
-            for ($i = 0; $i < 48; $i++) {
-                if (count($data)) {
-                    if (time() > ($data[0]['end_timestamp'] / 1000)) {
-                        array_shift($data);
-                    }
-                }
+        $multiplier = 60 / $this->ReadPropertyInteger('PriceResolution');
+        if (count($data) > (24 * $multiplier)) {
+            $now = time();
+            while (($now > ($data[0]['end_timestamp'] / 1000)) && (array_find($data, function ($element) use ($data) {
+                return ($element['end_timestamp'] / 1000) === strtotime('+1 day', $data[0]['end_timestamp'] / 1000);
+            }) !== null)) {
+                array_shift($data);
+            }
+
+            while (count($data) > (24 * $multiplier)) {
+                array_pop($data);
             }
         }
         foreach ($data as $row) {
