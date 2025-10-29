@@ -118,6 +118,7 @@ class PowerPrice extends IPSModule
 
     private function NormalizeAndReduce($data)
     {
+        $this->SendDebug('NormalizeAndReduce - Input Data', json_encode($data), 0);
         $result = [];
 
         $base = $this->ReadPropertyFloat('PriceBase');
@@ -145,6 +146,7 @@ class PowerPrice extends IPSModule
             while (count($data) > (24 * $multiplier)) {
                 array_pop($data);
             }
+            $this->SendDebug('Filter Data - Updated Data', json_encode($data), 0);
         }
         foreach ($data as $row) {
             $value = [
