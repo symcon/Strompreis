@@ -137,9 +137,10 @@ class PowerPrice extends IPSModule
         $multiplier = 60 / $this->ReadPropertyInteger('PriceResolution');
         if (count($data) > (24 * $multiplier)) {
             $now = time();
-            while (($now > ($data[0]['end_timestamp'] / 1000)) && (array_find($data, function ($element) use ($data) {
+            $this->SendDebug('Filter Data - Now', $now, 0);
+            while (($now > ($data[0]['end_timestamp'] / 1000)) && (count(array_filter($data, function ($element) use ($data) {
                 return ($element['end_timestamp'] / 1000) === strtotime('+1 day', $data[0]['end_timestamp'] / 1000);
-            }) !== null)) {
+            })) > 0)) {
                 array_shift($data);
             }
 
