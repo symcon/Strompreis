@@ -60,6 +60,10 @@
             color: white;
             border-radius: 3px;
         }
+
+        .unavailable {
+            opacity: 0.4;
+        }
     </style>
 </head>
 <body>
@@ -81,7 +85,7 @@
         const price_resolution = parseInt('%price_resolution%');
         const maxBarCount = (24 * (60 / price_resolution));
 
-        const bars = document.getElementById("bars");
+        const bars = document.getElementById('bars');
         for(let i = 0; i < maxBarCount; i++) {
             const bar = document.createElement('div');
             bar.id = 'bar_' + i;
@@ -92,7 +96,7 @@
             bars.appendChild(bar);
         }
 
-        const hours = document.getElementById("hours");
+        const hours = document.getElementById('hours');
         for(let i = 0; i < 24; i++) {
             const hour = document.createElement('div');
             hour.id = 'hour_' + i;
@@ -110,8 +114,8 @@
                 }
             }
 
-            const currentHour = new Date().getHours();
             const data = JSON.parse(message);
+            const nowDate = new Date();
             const now = Math.floor(Date.now() / 1000);
 
             let min_price = Number.MAX_VALUE;
@@ -125,19 +129,49 @@
             avg_price = avg_price / data.length;
 
             const max_height = 100 / max_price;
+            const handledIndexes = [];
 
             for(let row of data) {
                 const ts = new Date(row.start*1000);
+                if ((row.start < now) && (ts.getHours() < nowDate.getHours())) {
+                    continue;
+                }
                 if (row.start <= now && row.end > now) {
                     document.getElementById('price_cur').innerHTML = row.price.toFixed(2) + '&nbsp;ct';
                 }
+
                 const index = (ts.getHours() * (60 / price_resolution)) + Math.floor(ts.getMinutes() / price_resolution);
                 document.getElementById('bar_' + index).style.height = Math.floor(Math.max(0, row.price * max_height)) + '%';
+                document.getElementById('bar_' + index).className = '';
                 if (price_resolution == 60) {
                     document.getElementById('bar_' + index).innerHTML = row.price.toFixed(2) + ' ct&nbsp;&nbsp;';
                 }
                 else {
                     document.getElementById('bar_' + index).title = row.price.toFixed(2) + ' ct (' + (ts.getHours()).toString().padStart(2, '0') + ':' + ts.getMinutes().toString().padStart(2, '0') + ')';
+                }
+
+                handledIndexes.push(index);
+            }
+
+            for (let i = 0; i < maxBarCount; i++) {
+                const hour = Math.floor(i / (60 / price_resolution));
+                const div = document.getElementById('bar_' + i);
+                if (hour < nowDate.getHours()) {
+                    bars.appendChild(div);
+                    // No need to add it to the back multiple times for 15 minute resolution
+                    if (60 % price_resolution == 0) {
+                        hours.appendChild(document.getElementById('hour_' + hour));
+                    }
+                }
+                if (!handledIndexes.includes(i)) {
+                    div.style.height = '100%';
+                    div.className = 'unavailable';
+                    if (price_resolution == 60) {
+                        div.innerHTML = '???&nbsp;&nbsp;';
+                    }
+                    else {
+                        div.title = translate('??? (Not available yet)');
+                    }
                 }
             }
             if (data.length > 0) {
