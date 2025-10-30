@@ -258,7 +258,7 @@ class PowerPrice extends IPSModule
     private function FetchFromAwattar($market)
     {
         $start = mktime(0, 0, 0, intval(date('m')), intval(date('d')), intval(date('Y')));
-        $end = mktime(0, 0, 0, intval(date('m')), intval(date('d') + 1), intval(date('Y')));
+        $end = strtotime('+2 days', $start);
         $this->SendDebug('FetchFromAwattar - Request', "Fetching data from $market between " . date('Y-m-d H:i:s', $start) . "($start) and " . date('Y-m-d H:i:s', $end) . "($end)", 0);
         $data = file_get_contents(sprintf('https://api.awattar.%s/v1/marketdata?start=%s&end=%s', $market, $start * 1000, $end * 1000));
         $this->SendDebug('FetchFromAwattar - Result', $data, 0);
