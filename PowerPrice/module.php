@@ -138,7 +138,8 @@ class PowerPrice extends IPSModule
         if (count($data) > (24 * $multiplier)) {
             $now = time();
             $this->SendDebug('Filter Data - Now', $now, 0);
-            while (($now > ($data[0]['end_timestamp'] / 1000)) && (count(array_filter($data, function ($element) use ($data) {
+            while (($now > ($data[0]['end_timestamp'] / 1000)) && (count(array_filter($data, function ($element) use ($data)
+            {
                 return ($element['end_timestamp'] / 1000) === strtotime('+1 day', $data[0]['end_timestamp'] / 1000);
             })) > 0)) {
                 array_shift($data);
@@ -270,7 +271,7 @@ class PowerPrice extends IPSModule
         $this->SendDebug('FetchFromTibber - Postal Code', $postalCode, 0);
         $data = file_get_contents(sprintf('https://tibber.com/de/api/lookup/price-overview?postalCode=%s', $postalCode));
         $this->SendDebug('FetchFromTibber - Result', $data, 0);
-        switch($this->ReadPropertyInteger('PriceResolution')) {
+        switch ($this->ReadPropertyInteger('PriceResolution')) {
             case 15:
                 $energy = json_decode($data, true)['energy']['todayQuarterHours'];
                 break;
