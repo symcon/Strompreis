@@ -28,7 +28,7 @@ class PowerPrice extends IPSModule
 
         // Market data update timer - every 2 hours, load initially after 30 seconds
         $this->RegisterTimer('UpdateMarketData', 30000, 'SPX_UpdateMarketData($_IPS["TARGET"]);');
-        
+
         // Current price update timer - based on price resolution, load initially after 35 seconds
         $this->RegisterTimer('UpdateCurrentPrice', 35000, 'SPX_UpdateCurrentPrice($_IPS["TARGET"]);');
     }
@@ -83,22 +83,22 @@ class PowerPrice extends IPSModule
         $this->SetValue('MarketData', $marketData);
 
         // Set next market data update to synchronize to full 2-hour intervals (00:00, 02:00, 04:00, etc.)
-        $currentHour = (int)date('H');
-        $currentMinute = (int)date('i');
-        $currentSecond = (int)date('s');
-        
+        $currentHour = (int) date('H');
+        $currentMinute = (int) date('i');
+        $currentSecond = (int) date('s');
+
         // Calculate hours until next 2-hour interval
         $hoursToNext = 2 - ($currentHour % 2);
         if ($hoursToNext == 2 && $currentMinute == 0 && $currentSecond == 0) {
             $hoursToNext = 0; // Already at the interval
         }
-        
+
         $waitTime = ($hoursToNext * 3600 - $currentMinute * 60 - $currentSecond) * 1000;
         $waitTime += 30 * 1000; // Synchronize 30 seconds after the full hour to ensure data availability
         if ($waitTime <= 0) {
             $waitTime = 2 * 3600 * 1000; // If calculation fails, use regular 2-hour interval
         }
-        
+
         $this->SetTimerInterval('UpdateMarketData', $waitTime);
     }
 
@@ -107,7 +107,7 @@ class PowerPrice extends IPSModule
         $marketData = $this->GetValue('MarketData');
         $currentTime = time();
         $found = false;
-        
+
         foreach (json_decode($marketData) as $row) {
             if ($currentTime >= $row->start && $currentTime <= $row->end) {
                 $this->SetValue('CurrentPrice', $row->price);
@@ -122,22 +122,22 @@ class PowerPrice extends IPSModule
         // Set next current price update based on price resolution
         $priceResolution = $this->ReadPropertyInteger('PriceResolution');
         $updateInterval = $priceResolution * 60 * 1000; // Convert minutes to milliseconds
-        
+
         // Synchronize to the next resolution interval (e.g., xx:00:00 for 60min, xx:00:00 or xx:15:00 etc. for 15min)
-        $currentMinutes = (int)date('i');
-        $currentSeconds = (int)date('s');
-        
+        $currentMinutes = (int) date('i');
+        $currentSeconds = (int) date('s');
+
         // Calculate minutes until next resolution interval
         $minutesToNext = $priceResolution - ($currentMinutes % $priceResolution);
         if ($minutesToNext == $priceResolution && $currentSeconds == 0) {
             $minutesToNext = 0; // Already at the interval
         }
-        
+
         $waitTime = ($minutesToNext * 60 - $currentSeconds) * 1000;
         if ($waitTime <= 0) {
             $waitTime = $updateInterval; // If calculation fails, use regular interval
         }
-        
+
         $this->SetTimerInterval('UpdateCurrentPrice', $waitTime);
     }
 
