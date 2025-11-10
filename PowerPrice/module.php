@@ -32,6 +32,11 @@ class PowerPrice extends IPSModule
         // Current price update timer - based on price resolution, load initially after 35 seconds
         $this->RegisterTimer('UpdateCurrentPrice', 35000, 'SPX_UpdateCurrentPrice($_IPS["TARGET"]);');
     }
+
+    public function ApplyChanges()
+    {
+        parent::ApplyChanges();
+        $this->Update();
     }
 
     public function GetConfigurationForm()
