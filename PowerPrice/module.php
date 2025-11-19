@@ -110,7 +110,7 @@ class PowerPrice extends IPSModule
         $found = false;
 
         foreach (json_decode($marketData) as $row) {
-            if ($currentTime >= $row->start && $currentTime <= $row->end) {
+            if ($currentTime >= $row->start && $currentTime < $row->end) {
                 $this->SetValue('CurrentPrice', $row->price);
                 $found = true;
                 break;
