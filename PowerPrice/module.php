@@ -106,6 +106,7 @@ class PowerPrice extends IPSModule
     {
         $marketData = $this->GetValue('MarketData');
         $currentTime = time();
+        $this->SendDebug('UpdateCurrentPrice - Current Time', date('H:i:s', $currentTime), 0);
         $found = false;
 
         foreach (json_decode($marketData) as $row) {
@@ -120,25 +121,12 @@ class PowerPrice extends IPSModule
         }
 
         // Set next current price update based on price resolution
-        $priceResolution = $this->ReadPropertyInteger('PriceResolution');
-        $updateInterval = $priceResolution * 60 * 1000; // Convert minutes to milliseconds
+        $priceResolution = $this->ReadPropertyInteger('PriceResolution') * 60;
 
-        // Synchronize to the next resolution interval (e.g., xx:00:00 for 60min, xx:00:00 or xx:15:00 etc. for 15min)
-        $currentMinutes = (int) date('i');
-        $currentSeconds = (int) date('s');
-
-        // Calculate minutes until next resolution interval
-        $minutesToNext = $priceResolution - ($currentMinutes % $priceResolution);
-        if ($minutesToNext == $priceResolution && $currentSeconds == 0) {
-            $minutesToNext = 0; // Already at the interval
-        }
-
-        $waitTime = ($minutesToNext * 60 - $currentSeconds) * 1000;
-        if ($waitTime <= 0) {
-            $waitTime = $updateInterval; // If calculation fails, use regular interval
-        }
-
-        $this->SetTimerInterval('UpdateCurrentPrice', $waitTime);
+        $remainder = $currentTime % $priceResolution;
+        $nextUpdate = $currentTime + ($priceResolution - $remainder);
+        
+        $this->SetTimerInterval('UpdateCurrentPrice', max(($nextUpdate - time()) * 1000, 1));
     }
 
     public function GetVisualizationTile()
