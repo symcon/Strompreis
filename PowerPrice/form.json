@@ -14,7 +14,7 @@
                     "value": "Tibber"
                 },
                 {
-                    "caption": "EPEX Spot",
+                    "caption": "EPEX Spot (via ENTSO-E)",
                     "value": "EPEXSpot"
                 }
             ],
@@ -40,6 +40,18 @@
             "type": "ValidationTextBox",
             "caption": "Post Code",
             "name": "TibberPostalCode",
+            "visible": false
+        },
+        {
+            "type": "ValidationTextBox",
+            "caption": "ENTSO-E Security Token",
+            "name": "EPEXSpotToken",
+            "visible": false
+        },
+        {
+            "type": "Label",
+            "name": "EPEXSpotTokenHint",
+            "caption": "You can get a free ENTSO-E Security Token by following the tutorial here: https://transparencyplatform.zendesk.com/hc/en-us/articles/12845911031188-How-to-get-security-token",
             "visible": false
         },
         {
@@ -80,10 +92,6 @@
                     "value": "FR"
                 },
                 {
-                    "caption": "GB",
-                    "value": "GB"
-                },
-                {
                     "caption": "NL",
                     "value": "NL"
                 },
@@ -104,24 +112,12 @@
                     "value": "NO4"
                 },
                 {
-                    "caption": "NO5",
-                    "value": "NO5"
-                },
-                {
-                    "caption": "PHELIX",
-                    "value": "PHELIX"
-                },
-                {
                     "caption": "PL",
                     "value": "PL"
                 },
                 {
                     "caption": "SE1",
                     "value": "SE1"
-                },
-                {
-                    "caption": "SE2",
-                    "value": "SE2"
                 },
                 {
                     "caption": "SE3",

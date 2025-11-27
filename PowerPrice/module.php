@@ -7,6 +7,7 @@ class PowerPrice extends IPSModule
     public function Create()
     {
         $this->RegisterPropertyString('Provider', 'aWATTar');
+        $this->RegisterPropertyString('EPEXSpotToken', '');
         $this->RegisterPropertyString('EPEXSpotMarket', 'DE-LU');
         $this->RegisterPropertyString('aWATTarMarket', 'de');
         $this->RegisterPropertyString('TibberPostalCode', '23554');
@@ -45,16 +46,18 @@ class PowerPrice extends IPSModule
         $form['elements'][1]['visible'] = $this->ReadPropertyString('Provider') === 'aWATTar';
         $form['elements'][2]['visible'] = $this->ReadPropertyString('Provider') === 'Tibber';
         $form['elements'][3]['visible'] = $this->ReadPropertyString('Provider') === 'EPEXSpot';
+        $form['elements'][4]['visible'] = $this->ReadPropertyString('Provider') === 'EPEXSpot';
+        $form['elements'][5]['visible'] = $this->ReadPropertyString('Provider') === 'EPEXSpot';
 
-        // 15 Minute Resolution is only available for Tibber/EPEX Sport
-        $form['elements'][4]['visible'] = in_array($this->ReadPropertyString('Provider'), ['Tibber', 'EPEXSpot']);
+        // Price resolution can only be changed for Tibber
+        $form['elements'][6]['visible'] = $this->ReadPropertyString('Provider') === 'Tibber';
 
         // Tibber includes full price information
-        $form['elements'][5]['visible'] = $this->ReadPropertyString('Provider') != 'Tibber';
-        $form['elements'][6]['visible'] = $this->ReadPropertyString('Provider') != 'Tibber';
         $form['elements'][7]['visible'] = $this->ReadPropertyString('Provider') != 'Tibber';
         $form['elements'][8]['visible'] = $this->ReadPropertyString('Provider') != 'Tibber';
         $form['elements'][9]['visible'] = $this->ReadPropertyString('Provider') != 'Tibber';
+        $form['elements'][10]['visible'] = $this->ReadPropertyString('Provider') != 'Tibber';
+        $form['elements'][11]['visible'] = $this->ReadPropertyString('Provider') != 'Tibber';
         return json_encode($form);
     }
 
@@ -76,7 +79,7 @@ class PowerPrice extends IPSModule
                 $marketData = $this->FetchFromTibber($this->ReadPropertyString('TibberPostalCode'));
                 break;
             case 'EPEXSpot':
-                $marketData = $this->FetchFromEPEXSpot($this->ReadPropertyString('EPEXSpotMarket'));
+                $marketData = $this->FetchFromEntsoe($this->ReadPropertyString('EPEXSpotMarket'));
                 break;
         }
         $this->UpdateVisualizationValue($marketData);
@@ -125,7 +128,7 @@ class PowerPrice extends IPSModule
 
         $remainder = $currentTime % $priceResolution;
         $nextUpdate = $currentTime + ($priceResolution - $remainder);
-        
+
         $this->SetTimerInterval('UpdateCurrentPrice', max(($nextUpdate - time()) * 1000, 1));
     }
 
@@ -137,8 +140,19 @@ class PowerPrice extends IPSModule
         // Inject current values
         $module = str_replace('%market_data%', $this->GetValue('MarketData'), $module);
 
+        // Determine resolution from market data if available, otherwise use property
+        $priceResolution = $this->ReadPropertyInteger('PriceResolution');
+        $marketData = json_decode($this->GetValue('MarketData'), true);
+        if (is_array($marketData) && count($marketData) > 0 && isset($marketData[0]['end']) && isset($marketData[0]['start'])) {
+            $resolutionSeconds = $marketData[0]['end'] - $marketData[0]['start'];
+            $resolutionMinutes = $resolutionSeconds / 60;
+            if ($resolutionMinutes > 0) {
+                $priceResolution = (int)$resolutionMinutes;
+            }
+        }
+
         // Inject resolution configuration
-        $module = str_replace('%price_resolution%', strval($this->ReadPropertyInteger('PriceResolution')), $module);
+        $module = str_replace('%price_resolution%', strval($priceResolution), $module);
 
         // Return everything to render our fancy tile!
         return $module;
@@ -149,8 +163,10 @@ class PowerPrice extends IPSModule
         $this->UpdateFormField('aWATTarMarket', 'visible', $Provider === 'aWATTar');
         $this->UpdateFormField('TibberPostalCode', 'visible', $Provider === 'Tibber');
         $this->UpdateFormField('EPEXSpotMarket', 'visible', $Provider === 'EPEXSpot');
+        $this->UpdateFormField('EPEXSpotToken', 'visible', $Provider === 'EPEXSpot');
+        $this->UpdateFormField('EPEXSpotTokenHint', 'visible', $Provider === 'EPEXSpot');
 
-        $this->UpdateFormField('PriceResolution', 'visible', $Provider != 'aWATTar');
+        $this->UpdateFormField('PriceResolution', 'enabled', $Provider === 'Tibber');
         if ($Provider == 'aWATTar') {
             $this->UpdateFormField('PriceResolution', 'value', 60);
         }
@@ -179,7 +195,18 @@ class PowerPrice extends IPSModule
          * }
          *
          */
-        $multiplier = 60 / $this->ReadPropertyInteger('PriceResolution');
+        // Determine resolution from first data entry if available, otherwise use property
+        $priceResolution = $this->ReadPropertyInteger('PriceResolution');
+        if (count($data) > 0 && isset($data[0]['end_timestamp']) && isset($data[0]['start_timestamp'])) {
+            $resolutionSeconds = ($data[0]['end_timestamp'] - $data[0]['start_timestamp']) / 1000;
+            $resolutionMinutes = $resolutionSeconds / 60;
+            if ($resolutionMinutes > 0) {
+                $priceResolution = (int)$resolutionMinutes;
+                $this->SendDebug('NormalizeAndReduce - Resolution from data', $priceResolution, 0);
+            }
+        }
+
+        $multiplier = 60 / $priceResolution;
         if (count($data) > (24 * $multiplier)) {
             $now = time();
             $this->SendDebug('Filter Data - Now', $now, 0);
@@ -214,91 +241,161 @@ class PowerPrice extends IPSModule
         return json_encode($result);
     }
 
-    private function FetchFromEPEXSpotEx($market, $trading_date, $delivery_date)
+    private function FetchFromEntsoe($market)
     {
-        $params = [
-            'market_area'   => $market,
-            'trading_date'  => $trading_date,
-            'delivery_date' => $delivery_date,
-            'modality'      => 'Auction',
-            'sub_modality'  => 'DayAhead',
-            'product'       => strval($this->ReadPropertyInteger('PriceResolution')),
-            'data_mode'     => 'table',
-        ];
+        switch ($market) {
+            case 'AT':
+                $market = '10YAT-APG------L'; // Austria
+                break;
+            case 'BE':
+                $market = '10YBE----------2'; // Belgium
+                break;
+            case 'CH':
+                $market = '10YCH-SWISSGRIDZ'; // Switzerland
+                break;
+            case 'DE-LU':
+                $market = '10Y1001A1001A82H'; // Germany/Luxembourg
+                break;
+            case 'DK1':
+                $market = '10YDK-1--------W'; // Denmark 1
+                break;
+            case 'DK2':
+                $market = '10YDK-2--------M'; // Denmark 2
+                break;
+            case 'FI':
+                $market = '10YFI-1--------U'; // Finland
+                break;
+            case 'FR':
+                $market = '10YFR-RTE------C'; // France
+                break;
+            case 'GB':
+                $market = '10YGB----------A'; // Great Britain
+                break;
+            case 'NL':
+                $market = '10YNL----------L'; // Netherlands
+                break;
+            case 'NO1':
+                $market = '10YNO-1--------2'; // Norway 1
+                break;
+            case 'NO2':
+                $market = '10YNO-2--------T'; // Norway 2
+                break;
+            case 'NO3':
+                $market = '10YNO-3--------J'; // Norway 3
+                break;
+            case 'NO4':
+                $market = '10YNO-4--------9'; // Norway 4
+                break;
+            case 'NO5':
+                $market = '10YNO-5--------C'; // Norway 5
+                break;
+            case 'PHELIX':
+                $market = '10Y1001A1001A46C'; // PHELIX (Physical Electricity Index)
+                break;
+            case 'PL':
+                $market = '10YPL-AREA-----S'; // Poland
+                break;
+            case 'SE1':
+                $market = '10Y1001A1001A44P'; // Sweden 1
+                break;
+            case 'SE2':
+                $market = '10Y1001A1001A45W'; // Sweden 2
+                break;
+            case 'SE3':
+                $market = '10Y1001A1001A46L'; // Sweden 3
+                break;
+            case 'SE4':
+                $market = '10Y1001A1001A47J'; // Sweden 4
+                break;
+            default:
+                $this->SendDebug('FetchFromEntsoe - Unsupported Market', $market, 0);
+                return [];
+        }
+        $start = mktime(0, 0, 0, intval(date('m')), intval(date('d')), intval(date('Y')));
+        $end = strtotime('+2 days', $start);
+        $dateFormat = 'YmdHi';
+        $securityToken = $this->ReadPropertyString('EPEXSpotToken');
+        $this->SendDebug('FetchFromEntsoe - Request', "Fetching data from $market between " . date('Y-m-d H:i:s', $start) . "($start) and " . date('Y-m-d H:i:s', $end) . "($end)", 0);
+        $data = file_get_contents(sprintf('https://web-api.tp.entsoe.eu/api?securityToken=%s&documentType=A44&periodStart=%s&periodEnd=%s&out_Domain=%s&in_Domain=%s', $securityToken, gmdate($dateFormat, $start), gmdate($dateFormat, $end), $market, $market));
+        $this->SendDebug('FetchFromEntsoe - Result', $data, 0);
 
-        $opts = [
-            'http' => [
-                'method'  => 'POST',
-                'header'  => 'Content-Type: application/x-www-form-urlencoded' . "\r\n" .
-                             'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            ],
-        ];
-
-        $this->SendDebug('FetchFromEPEX - Parameters', json_encode($params), 0);
-        $response = file_get_contents('https://www.epexspot.com/en/market-results?' . http_build_query($params), false, stream_context_create($opts));
-        $this->SendDebug('FetchFromEPEX - Response', $response, 0);
-
-        // Als HTML DOM laden
-        $doc = new DOMDocument();
-        @$doc->loadHTML($response); // Das @-Zeichen unterdrückt Warnungen wegen fehlerhaftem HTML
-        $xpath = new DOMXPath($doc);
-
-        $table = [];
-
-        // Extrahieren der Stunden
-        $hours = $xpath->query('//div[contains(@class, "js-table-times")]//li/a');
-        foreach ($hours as $i => $hour) {
-            $table[$i] = [$hour->nodeValue];
+        // Parse XML and extract Point data
+        $xml = simplexml_load_string($data);
+        if ($xml === false) {
+            $this->SendDebug('FetchFromEntsoe - XML Parse Error', 'Failed to parse XML', 0);
+            return [];
         }
 
-        // Extrahieren der Preis- und Volumendaten
-        $rows = $xpath->query('//div[contains(@class, "js-table-values")]//tr[contains(@class, "child")]');
-
-        $i = 0;
-        foreach ($rows as $row) {
-            $cells = $row->childNodes;
-            $rowData = [];
-            $j = 1;
-            foreach ($cells as $cell) {
-                if ($cell instanceof DOMElement) {
-                    $table[$i][$j] = $cell->nodeValue;
-                    $j++;
-                }
-            }
-            $i++;
-        }
-
-        // Daten zu unserem Zielformat konvertieren
+        // Get all TimeSeries elements and their Points
         $result = [];
-        foreach ($table as $row) {
+        foreach ($xml->children('urn:iec62325.351:tc57wg16:451-3:publicationdocument:7:3') as $child) {
+            if ($child->getName() === 'TimeSeries') {
+                $positionElement = (string)$child->{'classificationSequence_AttributeInstanceComponent.position'};
+                // If position is set and not '1', skip this TimeSeries
+                if ((strlen($positionElement) > 0) && ($positionElement !== '1')) {
+                    continue; // We only want the actual market prices, not forecasts or other data
+                }
+                $period = $child->Period;
+                $start = strtotime((string)$period->timeInterval->start);
+                $resolution = ((string)$period->resolution === 'PT15M' ? 15 : 60) * 60; // Currently only handling 15 or 60 minutes
+                $currency = '';
+                $unit = '';
+                // Access elements with dots in their names using array syntax
+                $currencyName = (string)$child->{'currency_Unit.name'};
+                $unitName = (string)$child->{'price_Measure_Unit.name'};
 
-            $date = DateTime::createFromFormat('Y-m-d', $delivery_date);
-            list($startString, $endString) = explode(' - ', $row[0]);
-            $startSplit = explode(':', $startString);
-            $startTime = clone $date;
-            $startTime->setTime((int) $startSplit[0], count($startSplit) > 1 ? (int) $startSplit[1] : 0); // Stunden und Minuten setzen
-            $endSplit = explode(':', $endString);
-            $endTime = clone $date;
-            $endTime->setTime((int) $endSplit[0], count($endSplit) > 1 ? (int) $endSplit[1] : 0); // Stunden und Minuten setzen
-
-            $result[] = [
-                'start_timestamp' => $startTime->getTimestamp() * 1000,
-                'end_timestamp'   => $endTime->getTimestamp() * 1000,
-                'marketprice'     => floatval($row[4]),
-                'unit'            => 'Eur/MWh'
-            ];
+                switch ($currencyName) {
+                    case 'EUR':
+                        $currency = 'Eur';
+                        // Valid unit
+                        break;
+                    default:
+                        $this->SendDebug('FetchFromEntsoe - Unsupported Currency', $currencyName, 0);
+                        $currency = $currencyName;
+                        break;
+                }
+                switch ($unitName) {
+                    case 'MWH':
+                        $unit = 'MWh';
+                        // Valid unit
+                        break;
+                    default:
+                        $this->SendDebug('FetchFromEntsoe - Unsupported Unit', $unitName, 0);
+                        $unit = $unitName;
+                        break;
+                }
+                $position = 1;
+                foreach ($period->Point as $point) {
+                    $pointPosition = (int)$point->position;
+                    while ($position < $pointPosition) {
+                        if (count($result) === 0) {
+                            $this->SendDebug('FetchFromEntsoe - Missing position at start', $unitName, 0);
+                            break; // No previous value to fill from
+                        }
+                        // Fill missing points with previous 
+                        $previous = end($result);
+                        $result[] = [
+                            'start_timestamp' => (($position - 1) * $resolution + $start) * 1000,
+                            'end_timestamp'   => (($position) * $resolution + $start) * 1000,
+                            'marketprice'     => $previous['marketprice'],
+                            'unit'            => $currency . '/' . $unit,
+                        ];
+                        $position++;
+                    }
+                    $result[] = [
+                        'start_timestamp' => (($pointPosition - 1) * $resolution + $start) * 1000,
+                        'end_timestamp'   => (($pointPosition) * $resolution + $start) * 1000,
+                        'marketprice'     => (float)$point->{'price.amount'},
+                        'unit'            => $currency . '/' . $unit,
+                    ];
+                    $position++;
+                }
+                break;
+            }
         }
-        return $result;
-    }
+        $this->SendDebug('FetchFromEntsoe - Points Found', count($result), 0);
 
-    private function FetchFromEPEXSpot($market)
-    {
-        $data = [];
-        $data = array_merge($data, $this->FetchFromEpexSpotEx($market, date('Y-m-d', strtotime('-1 day')), date('Y-m-d')));
-        if (date('H') >= 14) {
-            $data = array_merge($data, $this->FetchFromEpexSpotEx($market, date('Y-m-d'), date('Y-m-d', strtotime('+1 day'))));
-        }
-        return $this->NormalizeAndReduce($data);
+        return $this->NormalizeAndReduce($result);
     }
 
     private function FetchFromAwattar($market)
