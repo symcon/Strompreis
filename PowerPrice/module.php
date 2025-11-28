@@ -390,9 +390,13 @@ class PowerPrice extends IPSModule
                     ];
                     $position++;
                 }
-                break;
             }
         }
+
+        usort($result, function($a, $b) {
+            return $a['start_timestamp'] <=> $b['start_timestamp'];
+        });
+
         $this->SendDebug('FetchFromEntsoe - Points Found', count($result), 0);
 
         return $this->NormalizeAndReduce($result);
