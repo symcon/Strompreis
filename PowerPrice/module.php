@@ -316,19 +316,19 @@ class PowerPrice extends IPSModule
         $result = [];
         foreach ($xml->children('urn:iec62325.351:tc57wg16:451-3:publicationdocument:7:3') as $child) {
             if ($child->getName() === 'TimeSeries') {
-                $positionElement = (string)$child->{'classificationSequence_AttributeInstanceComponent.position'};
+                $positionElement = (string) $child->{'classificationSequence_AttributeInstanceComponent.position'};
                 // If position is set and not '1', skip this TimeSeries
                 if ((strlen($positionElement) > 0) && ($positionElement !== '1')) {
                     continue; // We only want the actual market prices, not forecasts or other data
                 }
                 $period = $child->Period;
-                $start = strtotime((string)$period->timeInterval->start);
-                $resolution = ((string)$period->resolution === 'PT15M' ? 15 : 60) * 60; // Currently only handling 15 or 60 minutes
+                $start = strtotime((string) $period->timeInterval->start);
+                $resolution = ((string) $period->resolution === 'PT15M' ? 15 : 60) * 60; // Currently only handling 15 or 60 minutes
                 $currency = '';
                 $unit = '';
                 // Access elements with dots in their names using array syntax
-                $currencyName = (string)$child->{'currency_Unit.name'};
-                $unitName = (string)$child->{'price_Measure_Unit.name'};
+                $currencyName = (string) $child->{'currency_Unit.name'};
+                $unitName = (string) $child->{'price_Measure_Unit.name'};
 
                 switch ($currencyName) {
                     case 'EUR':
@@ -352,13 +352,13 @@ class PowerPrice extends IPSModule
                 }
                 $position = 1;
                 foreach ($period->Point as $point) {
-                    $pointPosition = (int)$point->position;
+                    $pointPosition = (int) $point->position;
                     while ($position < $pointPosition) {
                         if (count($result) === 0) {
                             $this->SendDebug('FetchFromEntsoe - Missing position at start', $unitName, 0);
                             break; // No previous value to fill from
                         }
-                        // Fill missing points with previous 
+                        // Fill missing points with previous
                         $previous = end($result);
                         $result[] = [
                             'start_timestamp' => (($position - 1) * $resolution + $start) * 1000,
@@ -371,7 +371,7 @@ class PowerPrice extends IPSModule
                     $result[] = [
                         'start_timestamp' => (($pointPosition - 1) * $resolution + $start) * 1000,
                         'end_timestamp'   => (($pointPosition) * $resolution + $start) * 1000,
-                        'marketprice'     => (float)$point->{'price.amount'},
+                        'marketprice'     => (float) $point->{'price.amount'},
                         'unit'            => $currency . '/' . $unit,
                     ];
                     $position++;
@@ -379,7 +379,8 @@ class PowerPrice extends IPSModule
             }
         }
 
-        usort($result, function($a, $b) {
+        usort($result, function ($a, $b)
+        {
             return $a['start_timestamp'] <=> $b['start_timestamp'];
         });
 
@@ -423,7 +424,8 @@ class PowerPrice extends IPSModule
         return json_encode($result);
     }
 
-    private function GetPriceResolution($data = null, $startField = 'start', $endField = 'end', $divisorToSeconds = 1) {
+    private function GetPriceResolution($data = null, $startField = 'start', $endField = 'end', $divisorToSeconds = 1)
+    {
         if ($data === null) {
             $data = json_decode($this->GetValue('MarketData'), true);
         }
@@ -433,7 +435,7 @@ class PowerPrice extends IPSModule
             $resolutionSeconds = ($data[0][$endField] - $data[0][$startField]) / $divisorToSeconds;
             $resolutionMinutes = $resolutionSeconds / 60;
             if ($resolutionMinutes > 0) {
-                return (int)$resolutionMinutes;
+                return (int) $resolutionMinutes;
             }
         }
         return $this->ReadPropertyInteger('PriceResolution');
