@@ -124,7 +124,8 @@ class PowerPrice extends IPSModule
         }
 
         // Set next current price update based on price resolution
-        $priceResolution = $this->ReadPropertyInteger('PriceResolution') * 60;
+        $priceResolution = $this->GetPriceResolution() * 60;
+        $this->SendDebug('UpdateCurrentPrice - Price Resolution', $priceResolution, 0);
 
         $remainder = $currentTime % $priceResolution;
         $nextUpdate = $currentTime + ($priceResolution - $remainder);
@@ -141,15 +142,7 @@ class PowerPrice extends IPSModule
         $module = str_replace('%market_data%', $this->GetValue('MarketData'), $module);
 
         // Determine resolution from market data if available, otherwise use property
-        $priceResolution = $this->ReadPropertyInteger('PriceResolution');
-        $marketData = json_decode($this->GetValue('MarketData'), true);
-        if (is_array($marketData) && count($marketData) > 0 && isset($marketData[0]['end']) && isset($marketData[0]['start'])) {
-            $resolutionSeconds = $marketData[0]['end'] - $marketData[0]['start'];
-            $resolutionMinutes = $resolutionSeconds / 60;
-            if ($resolutionMinutes > 0) {
-                $priceResolution = (int)$resolutionMinutes;
-            }
-        }
+        $priceResolution = $this->GetPriceResolution();
 
         // Inject resolution configuration
         $module = str_replace('%price_resolution%', strval($priceResolution), $module);
@@ -196,15 +189,7 @@ class PowerPrice extends IPSModule
          *
          */
         // Determine resolution from first data entry if available, otherwise use property
-        $priceResolution = $this->ReadPropertyInteger('PriceResolution');
-        if (count($data) > 0 && isset($data[0]['end_timestamp']) && isset($data[0]['start_timestamp'])) {
-            $resolutionSeconds = ($data[0]['end_timestamp'] - $data[0]['start_timestamp']) / 1000;
-            $resolutionMinutes = $resolutionSeconds / 60;
-            if ($resolutionMinutes > 0) {
-                $priceResolution = (int)$resolutionMinutes;
-                $this->SendDebug('NormalizeAndReduce - Resolution from data', $priceResolution, 0);
-            }
-        }
+        $priceResolution = $this->GetPriceResolution($data, 'start_timestamp', 'end_timestamp', 1000);
 
         $multiplier = 60 / $priceResolution;
         if (count($data) > (24 * $multiplier)) {
@@ -435,5 +420,21 @@ class PowerPrice extends IPSModule
             ];
         }
         return json_encode($result);
+    }
+
+    private function GetPriceResolution($data = null, $startField = 'start', $endField = 'end', $divisorToSeconds = 1) {
+        if ($data === null) {
+            $data = json_decode($this->GetValue('MarketData'), true);
+        }
+        $this->SendDebug('GetPriceResolution - Data', json_encode($data), 0);
+        // Determine resolution from first data entry if available, otherwise use property
+        if (count($data) > 0 && isset($data[0][$endField]) && isset($data[0][$startField])) {
+            $resolutionSeconds = ($data[0][$endField] - $data[0][$startField]) / $divisorToSeconds;
+            $resolutionMinutes = $resolutionSeconds / 60;
+            if ($resolutionMinutes > 0) {
+                return (int)$resolutionMinutes;
+            }
+        }
+        return $this->ReadPropertyInteger('PriceResolution');
     }
 }
