@@ -103,6 +103,7 @@ class PowerPrice extends IPSModule
         }
 
         $this->SetTimerInterval('UpdateMarketData', $waitTime);
+        $this->UpdateCurrentPrice();
     }
 
     public function UpdateCurrentPrice()
