@@ -404,7 +404,8 @@ class PowerPrice extends IPSModule
         $this->SendDebug('FetchFromTibber - Postal Code', $postalCode, 0);
         $data = file_get_contents(sprintf('https://tibber.com/de/api/lookup/price-overview?postalCode=%s', $postalCode));
         $this->SendDebug('FetchFromTibber - Result', $data, 0);
-        switch ($this->ReadPropertyInteger('PriceResolution')) {
+        $resolution = $this->ReadPropertyInteger('PriceResolution');
+        switch ($resolution) {
             case 15:
                 $energy = json_decode($data, true)['energy']['todayQuarterHours'];
                 break;
@@ -417,7 +418,7 @@ class PowerPrice extends IPSModule
             $date = explode('-', $data['date']);
             $result[] = [
                 'start' => mktime($data['hour'], $data['minute'], 0, intval($date[1]), intval($date[2]), intval($date[0])),
-                'end'   => mktime($data['hour'] + 1, $data['minute'], 0, intval($date[1]), intval($date[2]), intval($date[0])),
+                'end'   => mktime($data['hour'], $data['minute'] + $resolution, 0, intval($date[1]), intval($date[2]), intval($date[0])),
                 'price' => $data['priceIncludingVat'] * 100,
             ];
         }
