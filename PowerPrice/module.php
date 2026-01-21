@@ -160,7 +160,7 @@ class PowerPrice extends IPSModule
         $this->UpdateFormField('EPEXSpotToken', 'visible', $Provider === 'EPEXSpot');
         $this->UpdateFormField('EPEXSpotTokenHint', 'visible', $Provider === 'EPEXSpot');
 
-        $this->UpdateFormField('PriceResolution', 'enabled', $Provider === 'Tibber');
+        $this->UpdateFormField('PriceResolution', 'visible', $Provider === 'Tibber');
         if ($Provider == 'aWATTar') {
             $this->UpdateFormField('PriceResolution', 'value', 60);
         }
