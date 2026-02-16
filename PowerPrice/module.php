@@ -314,69 +314,79 @@ class PowerPrice extends IPSModule
 
         // Get all TimeSeries elements and their Points
         $result = [];
+        $timeSeries = null;
+        $timeSeriesIndex = 9999;
         foreach ($xml->children('urn:iec62325.351:tc57wg16:451-3:publicationdocument:7:3') as $child) {
             if ($child->getName() === 'TimeSeries') {
                 $positionElement = (string) $child->{'classificationSequence_AttributeInstanceComponent.position'};
-                // If position is set and not '1', skip this TimeSeries
-                if ((strlen($positionElement) > 0) && ($positionElement !== '1')) {
-                    continue; // We only want the actual market prices, not forecasts or other data
-                }
-                $period = $child->Period;
-                $start = strtotime((string) $period->timeInterval->start);
-                $resolution = ((string) $period->resolution === 'PT15M' ? 15 : 60) * 60; // Currently only handling 15 or 60 minutes
-                $currency = '';
-                $unit = '';
-                // Access elements with dots in their names using array syntax
-                $currencyName = (string) $child->{'currency_Unit.name'};
-                $unitName = (string) $child->{'price_Measure_Unit.name'};
-
-                switch ($currencyName) {
-                    case 'EUR':
-                        $currency = 'Eur';
-                        // Valid unit
-                        break;
-                    default:
-                        $this->SendDebug('FetchFromEntsoe - Unsupported Currency', $currencyName, 0);
-                        $currency = $currencyName;
-                        break;
-                }
-                switch ($unitName) {
-                    case 'MWH':
-                        $unit = 'MWh';
-                        // Valid unit
-                        break;
-                    default:
-                        $this->SendDebug('FetchFromEntsoe - Unsupported Unit', $unitName, 0);
-                        $unit = $unitName;
-                        break;
-                }
-                $position = 1;
-                foreach ($period->Point as $point) {
-                    $pointPosition = (int) $point->position;
-                    while ($position < $pointPosition) {
-                        if (count($result) === 0) {
-                            $this->SendDebug('FetchFromEntsoe - Missing position at start', $unitName, 0);
-                            break; // No previous value to fill from
-                        }
-                        // Fill missing points with previous
-                        $previous = end($result);
-                        $result[] = [
-                            'start_timestamp' => (($position - 1) * $resolution + $start) * 1000,
-                            'end_timestamp'   => (($position) * $resolution + $start) * 1000,
-                            'marketprice'     => $previous['marketprice'],
-                            'unit'            => $currency . '/' . $unit,
-                        ];
-                        $position++;
-                    }
-                    $result[] = [
-                        'start_timestamp' => (($pointPosition - 1) * $resolution + $start) * 1000,
-                        'end_timestamp'   => (($pointPosition) * $resolution + $start) * 1000,
-                        'marketprice'     => (float) $point->{'price.amount'},
-                        'unit'            => $currency . '/' . $unit,
-                    ];
-                    $position++;
+                $index = strlen($positionElement) > 0 ? (int) $positionElement : 0;
+                if ($index < $timeSeriesIndex) {
+                    $timeSeriesIndex = $index;
+                    $timeSeries = $child;
                 }
             }
+        }
+
+        if ($timeSeries === null) {
+            $this->SendDebug('FetchFromEntsoe - No TimeSeries Found', 'No TimeSeries element found in XML', 0);
+            return json_encode([]);
+        }
+
+        
+        $period = $timeSeries->Period;
+        $start = strtotime((string) $period->timeInterval->start);
+        $resolution = ((string) $period->resolution === 'PT15M' ? 15 : 60) * 60; // Currently only handling 15 or 60 minutes
+        $currency = '';
+        $unit = '';
+        // Access elements with dots in their names using array syntax
+        $currencyName = (string) $timeSeries->{'currency_Unit.name'};
+        $unitName = (string) $timeSeries->{'price_Measure_Unit.name'};
+
+        switch ($currencyName) {
+            case 'EUR':
+                $currency = 'Eur';
+                // Valid unit
+                break;
+            default:
+                $this->SendDebug('FetchFromEntsoe - Unsupported Currency', $currencyName, 0);
+                $currency = $currencyName;
+                break;
+        }
+        switch ($unitName) {
+            case 'MWH':
+                $unit = 'MWh';
+                // Valid unit
+                break;
+            default:
+                $this->SendDebug('FetchFromEntsoe - Unsupported Unit', $unitName, 0);
+                $unit = $unitName;
+                break;
+        }
+        $position = 1;
+        foreach ($period->Point as $point) {
+            $pointPosition = (int) $point->position;
+            while ($position < $pointPosition) {
+                if (count($result) === 0) {
+                    $this->SendDebug('FetchFromEntsoe - Missing position at start', $unitName, 0);
+                    break; // No previous value to fill from
+                }
+                // Fill missing points with previous
+                $previous = end($result);
+                $result[] = [
+                    'start_timestamp' => (($position - 1) * $resolution + $start) * 1000,
+                    'end_timestamp'   => (($position) * $resolution + $start) * 1000,
+                    'marketprice'     => $previous['marketprice'],
+                    'unit'            => $currency . '/' . $unit,
+                ];
+                $position++;
+            }
+            $result[] = [
+                'start_timestamp' => (($pointPosition - 1) * $resolution + $start) * 1000,
+                'end_timestamp'   => (($pointPosition) * $resolution + $start) * 1000,
+                'marketprice'     => (float) $point->{'price.amount'},
+                'unit'            => $currency . '/' . $unit,
+            ];
+            $position++;
         }
 
         usort($result, function ($a, $b)
