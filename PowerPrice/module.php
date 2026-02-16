@@ -332,7 +332,6 @@ class PowerPrice extends IPSModule
             return json_encode([]);
         }
 
-        
         $period = $timeSeries->Period;
         $start = strtotime((string) $period->timeInterval->start);
         $resolution = ((string) $period->resolution === 'PT15M' ? 15 : 60) * 60; // Currently only handling 15 or 60 minutes
