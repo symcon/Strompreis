@@ -1,9 +1,14 @@
 <?php
 
 declare(strict_types=1);
+include_once __DIR__ . '/timetest.php';
+include_once __DIR__ . '/getcontentstest.php';
 
 class PowerPrice extends IPSModule
 {
+    use TestTime;
+    use TestGetContents;
+
     public function Create()
     {
         $this->RegisterPropertyString('Provider', 'aWATTar');
@@ -42,7 +47,7 @@ class PowerPrice extends IPSModule
 
     public function GetConfigurationForm()
     {
-        $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
+        $form = json_decode($this->getContents(__DIR__ . '/form.json'), true);
         $form['elements'][1]['visible'] = $this->ReadPropertyString('Provider') === 'aWATTar';
         $form['elements'][2]['visible'] = $this->ReadPropertyString('Provider') === 'Tibber';
         $form['elements'][3]['visible'] = $this->ReadPropertyString('Provider') === 'EPEXSpot';
@@ -109,8 +114,8 @@ class PowerPrice extends IPSModule
     public function UpdateCurrentPrice()
     {
         $marketData = $this->GetValue('MarketData');
-        $currentTime = time();
-        $this->SendDebug('UpdateCurrentPrice - Current Time', date('H:i:s', $currentTime), 0);
+        $currentTime = $this->getTime();
+        $this->SendDebug('UpdateCurrentPrice - Current Time', date('H:i:s', $currentTime) . '(' . $currentTime . ')', 0);
         $found = false;
 
         foreach (json_decode($marketData) as $row) {
@@ -126,18 +131,18 @@ class PowerPrice extends IPSModule
 
         // Set next current price update based on price resolution
         $priceResolution = $this->GetPriceResolution() * 60;
-        $this->SendDebug('UpdateCurrentPrice - Price Resolution', $priceResolution, 0);
+        $this->SendDebug('UpdateCurrentPrice - Price Resolution', json_encode($priceResolution), 0);
 
         $remainder = $currentTime % $priceResolution;
         $nextUpdate = $currentTime + ($priceResolution - $remainder);
 
-        $this->SetTimerInterval('UpdateCurrentPrice', max(($nextUpdate - time()) * 1000, 1));
+        $this->SetTimerInterval('UpdateCurrentPrice', max(($nextUpdate - $this->getTime()) * 1000, 1));
     }
 
     public function GetVisualizationTile()
     {
         // Add static HTML content from file to make editing easier
-        $module = file_get_contents(__DIR__ . '/module.html');
+        $module = $this->getContents(__DIR__ . '/module.html');
 
         // Inject current values
         $module = str_replace('%market_data%', $this->GetValue('MarketData'), $module);
@@ -194,8 +199,8 @@ class PowerPrice extends IPSModule
 
         $multiplier = 60 / $priceResolution;
         if (count($data) > (24 * $multiplier)) {
-            $now = time();
-            $this->SendDebug('Filter Data - Now', $now, 0);
+            $now = $this->getTime();
+            $this->SendDebug('Filter Data - Now', date('Y-m-d H:i:s', $now) . "($now)", 0);
             while (($now > ($data[0]['end_timestamp'] / 1000)) && (count(array_filter($data, function ($element) use ($data)
             {
                 return ($element['end_timestamp'] / 1000) === strtotime('+1 day', $data[0]['end_timestamp'] / 1000);
@@ -297,19 +302,24 @@ class PowerPrice extends IPSModule
                 $this->SendDebug('FetchFromEntsoe - Unsupported Market', $market, 0);
                 return [];
         }
-        $start = mktime(0, 0, 0, intval(date('m')), intval(date('d')), intval(date('Y')));
+        $start = mktime(0, 0, 0, intval(date('m', $this->getTime())), intval(date('d', $this->getTime())), intval(date('Y', $this->getTime())));
         $end = strtotime('+2 days', $start);
         $dateFormat = 'YmdHi';
         $securityToken = $this->ReadPropertyString('EPEXSpotToken');
         $this->SendDebug('FetchFromEntsoe - Request', "Fetching data from $market between " . date('Y-m-d H:i:s', $start) . "($start) and " . date('Y-m-d H:i:s', $end) . "($end)", 0);
-        $data = file_get_contents(sprintf('https://web-api.tp.entsoe.eu/api?securityToken=%s&documentType=A44&periodStart=%s&periodEnd=%s&out_Domain=%s&in_Domain=%s', $securityToken, gmdate($dateFormat, $start), gmdate($dateFormat, $end), $market, $market));
-        $this->SendDebug('FetchFromEntsoe - Result', $data, 0);
+        $data = $this->getContents(sprintf('https://web-api.tp.entsoe.eu/api?securityToken=%s&documentType=A44&periodStart=%s&periodEnd=%s&out_Domain=%s&in_Domain=%s', $securityToken, gmdate($dateFormat, $start), gmdate($dateFormat, $end), $market, $market));
+        $this->SendDebug('FetchFromEntsoe - Result', json_encode($data), 0);
+
+        if (!is_string($data)) {
+            $this->SendDebug('FetchFromEntsoe - Error', 'Failed to fetch data', 0);
+            return json_encode([]);
+        }
 
         // Parse XML and extract Point data
         $xml = simplexml_load_string($data);
         if ($xml === false) {
             $this->SendDebug('FetchFromEntsoe - XML Parse Error', 'Failed to parse XML', 0);
-            return [];
+            return json_encode([]);
         }
 
         // Get all TimeSeries elements and their Points
@@ -393,25 +403,38 @@ class PowerPrice extends IPSModule
             return $a['start_timestamp'] <=> $b['start_timestamp'];
         });
 
-        $this->SendDebug('FetchFromEntsoe - Points Found', count($result), 0);
+        $this->SendDebug('FetchFromEntsoe - Points Found', json_encode(count($result)), 0);
 
         return $this->NormalizeAndReduce($result);
     }
 
     private function FetchFromAwattar($market)
     {
-        $start = mktime(0, 0, 0, intval(date('m')), intval(date('d')), intval(date('Y')));
+        $start = mktime(0, 0, 0, intval(date('m', $this->getTime())), intval(date('d', $this->getTime())), intval(date('Y', $this->getTime())));
         $end = strtotime('+2 days', $start);
         $this->SendDebug('FetchFromAwattar - Request', "Fetching data from $market between " . date('Y-m-d H:i:s', $start) . "($start) and " . date('Y-m-d H:i:s', $end) . "($end)", 0);
-        $data = file_get_contents(sprintf('https://api.awattar.%s/v1/marketdata?start=%s&end=%s', $market, $start * 1000, $end * 1000));
+        $data = $this->getContents(sprintf('https://api.awattar.%s/v1/marketdata?start=%s&end=%s', $market, $start * 1000, $end * 1000));
+        
+        // Validate that data is a string and valid JSON
+        if (!is_string($data) || $data === false) {
+            $this->SendDebug('FetchFromAwattar - Error', 'Failed to fetch data or data is not a string', 0);
+            return json_encode([]);
+        }
         $this->SendDebug('FetchFromAwattar - Result', $data, 0);
-        return $this->NormalizeAndReduce(json_decode($data, true)['data']);
+        
+        $decodedData = json_decode($data, true);
+        if ($decodedData === null || !isset($decodedData['data'])) {
+            $this->SendDebug('FetchFromAwattar - Error', 'Invalid JSON response or missing data field', 0);
+            return json_encode([]);
+        }
+        
+        return $this->NormalizeAndReduce($decodedData['data']);
     }
 
     private function FetchFromTibber($postalCode)
     {
         $this->SendDebug('FetchFromTibber - Postal Code', $postalCode, 0);
-        $data = file_get_contents(sprintf('https://tibber.com/de/api/lookup/price-overview?postalCode=%s', $postalCode));
+        $data = $this->getContents(sprintf('https://tibber.com/de/api/lookup/price-overview?postalCode=%s', $postalCode));
         $this->SendDebug('FetchFromTibber - Result', $data, 0);
         $resolution = $this->ReadPropertyInteger('PriceResolution');
         switch ($resolution) {
