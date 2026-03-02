@@ -14,7 +14,19 @@ if (defined('PHPUNIT_TESTSUITE')) {
 
         protected function getContents($url)
         {
-            return $this->contentsOverrides[$url] ?? false;
+            $override = $this->contentsOverrides[$url] ?? null;
+            if ($override !== null) {
+                return [
+                    'body' => $override,
+                    'header' => ['200']
+                ];
+            }
+            else {
+                return [
+                    'body' => false,
+                    'header' => ['404']
+                ];
+            }
         }
     }
 } else {
@@ -22,7 +34,15 @@ if (defined('PHPUNIT_TESTSUITE')) {
     {
         protected function getContents($url)
         {
-            return file_get_contents($url);
+            $options = [
+                'http' => [
+                    'ignore_errors' => true
+                ]
+            ];
+            return [
+                'body' => file_get_contents($url, false, stream_context_create($options)),
+                'header' => $http_response_header ?? null
+            ];
         }
     }
 }

@@ -47,7 +47,8 @@ class PowerPrice extends IPSModule
 
     public function GetConfigurationForm()
     {
-        $form = json_decode($this->getContents(__DIR__ . '/form.json'), true);
+        // No helper here, we want to use the file in both testing and production
+        $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
         $form['elements'][1]['visible'] = $this->ReadPropertyString('Provider') === 'aWATTar';
         $form['elements'][2]['visible'] = $this->ReadPropertyString('Provider') === 'Tibber';
         $form['elements'][3]['visible'] = $this->ReadPropertyString('Provider') === 'EPEXSpot';
@@ -143,7 +144,8 @@ class PowerPrice extends IPSModule
     public function GetVisualizationTile()
     {
         // Add static HTML content from file to make editing easier
-        $module = $this->getContents(__DIR__ . '/module.html');
+        // No helper here, we want to use the file in both testing and production
+        $module = file_get_contents(__DIR__ . '/module.html');
 
         // Inject current values
         $module = str_replace('%market_data%', $this->GetValue('MarketData'), $module);
@@ -308,13 +310,22 @@ class PowerPrice extends IPSModule
         $dateFormat = 'YmdHi';
         $securityToken = $this->ReadPropertyString('EPEXSpotToken');
         $this->SendDebug('FetchFromEntsoe - Request', "Fetching data from $market between " . date('Y-m-d H:i:s', $start) . "($start) and " . date('Y-m-d H:i:s', $end) . "($end)", 0);
-        $data = $this->getContents(sprintf('https://web-api.tp.entsoe.eu/api?securityToken=%s&documentType=A44&periodStart=%s&periodEnd=%s&out_Domain=%s&in_Domain=%s', $securityToken, gmdate($dateFormat, $start), gmdate($dateFormat, $end), $market, $market));
-        $this->SendDebug('FetchFromEntsoe - Result', json_encode($data), 0);
+        $response = $this->getContents(sprintf('https://web-api.tp.entsoe.eu/api?securityToken=%s&documentType=A44&periodStart=%s&periodEnd=%s&out_Domain=%s&in_Domain=%s', $securityToken, gmdate($dateFormat, $start), gmdate($dateFormat, $end), $market, $market));
+        $data = $response['body'];
+        $headers = $response['header'];
 
         if (!is_string($data)) {
             $this->SendDebug('FetchFromEntsoe - Error', 'Failed to fetch data', 0);
             return json_encode([]);
         }
+
+        // Check HTTP response status
+        if ($headers && isset($headers[0]) && strpos($headers[0], '200') === false) {
+            $this->SendDebug('FetchFromEntsoe - HTTP Error', 'Non-200 response: ' . $headers[0] . ' - Body: ' . $data, 0);
+            return json_encode([]);
+        }
+
+        $this->SendDebug('FetchFromEntsoe - Result', json_encode($data), 0);
 
         // Parse XML and extract Point data
         $xml = simplexml_load_string($data);
@@ -420,13 +431,22 @@ class PowerPrice extends IPSModule
         $start = mktime(0, 0, 0, intval(date('m', $this->getTime())), intval(date('d', $this->getTime())), intval(date('Y', $this->getTime())));
         $end = strtotime('+2 days', $start);
         $this->SendDebug('FetchFromAwattar - Request', "Fetching data from $market between " . date('Y-m-d H:i:s', $start) . "($start) and " . date('Y-m-d H:i:s', $end) . "($end)", 0);
-        $data = $this->getContents(sprintf('https://api.awattar.%s/v1/marketdata?start=%s&end=%s', $market, $start * 1000, $end * 1000));
+        $response = $this->getContents(sprintf('https://api.awattar.%s/v1/marketdata?start=%s&end=%s', $market, $start * 1000, $end * 1000));
+        $data = $response['body'];
+        $headers = $response['header'];
         
         // Validate that data is a string and valid JSON
-        if (!is_string($data) || $data === false) {
+        if (!is_string($data)) {
             $this->SendDebug('FetchFromAwattar - Error', 'Failed to fetch data or data is not a string', 0);
             return json_encode([]);
         }
+
+        // Check HTTP response status
+        if ($headers && isset($headers[0]) && strpos($headers[0], '200') === false) {
+            $this->SendDebug('FetchFromAwattar - HTTP Error', 'Non-200 response: ' . $headers[0] . ' - Body: ' . $data, 0);
+            return json_encode([]);
+        }
+        
         $this->SendDebug('FetchFromAwattar - Result', $data, 0);
         
         $decodedData = json_decode($data, true);
@@ -441,9 +461,29 @@ class PowerPrice extends IPSModule
     private function FetchFromTibber($postalCode)
     {
         $this->SendDebug('FetchFromTibber - Postal Code', $postalCode, 0);
-        $data = $this->getContents(sprintf('https://tibber.com/de/api/lookup/price-overview?postalCode=%s', $postalCode));
-        $this->SendDebug('FetchFromTibber - Result', $data, 0);
+        $response = $this->getContents(sprintf('https://tibber.com/de/api/lookup/price-overview?postalCode=%s', $postalCode));
+        $dataJson = $response['body'];
+        $headers = $response['header'];
+        
+        if (!is_string($dataJson)) {
+            $this->SendDebug('FetchFromTibber - Error', 'Failed to fetch data or data is not a string', 0);
+            return json_encode([]);
+        }
+
+        // Check HTTP response status
+        if ($headers && isset($headers[0]) && strpos($headers[0], '200') === false) {
+            $this->SendDebug('FetchFromTibber - HTTP Error', 'Non-200 response: ' . $headers[0] . ' - Body: ' . $dataJson, 0);
+            return json_encode([]);
+        }
+        
+        $this->SendDebug('FetchFromTibber - Result', $dataJson, 0);
+
         $resolution = $this->ReadPropertyInteger('PriceResolution');
+        $data = json_decode($dataJson, true);
+        if (!is_array($data) || !isset($data['energy'])) {
+            $this->SendDebug('FetchFromTibber - Error', 'Invalid JSON response or missing energy field', 0);
+            return json_encode([]);
+        }
         switch ($resolution) {
             case 15:
                 $energy = json_decode($data, true)['energy']['todayQuarterHours'];
