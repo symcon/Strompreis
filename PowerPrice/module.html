@@ -116,7 +116,9 @@
 
             const data = JSON.parse(message);
             const nowDate = new Date();
+            const startDate = new Date(nowDate.getFullYear(), nowDate.getMonth(), nowDate.getDate(), nowDate.getHours(), 0, 0);
             const now = Math.floor(Date.now() / 1000);
+            const start = Math.floor(startDate.getTime() / 1000);
 
             let min_price = Number.MAX_VALUE;
             let max_price = Number.MIN_VALUE;
@@ -133,7 +135,10 @@
 
             for(let row of data) {
                 const ts = new Date(row.start*1000);
-                if ((row.start < now) && (ts.getHours() < nowDate.getHours())) {
+                if (row.start < start) {
+                    continue;
+                }
+                if (row.start >= (start + (maxBarCount * price_resolution * 60))) {
                     continue;
                 }
                 if (row.start <= now && row.end > now) {
