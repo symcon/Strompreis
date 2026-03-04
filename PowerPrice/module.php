@@ -486,10 +486,10 @@ class PowerPrice extends IPSModule
         }
         switch ($resolution) {
             case 15:
-                $energy = json_decode($data, true)['energy']['todayQuarterHours'];
+                $energy = $data['energy']['todayQuarterHours'];
                 break;
             case 60:
-                $energy = json_decode($data, true)['energy']['todayHours'];
+                $energy = $data['energy']['todayHours'];
                 break;
         }
         $result = [];
