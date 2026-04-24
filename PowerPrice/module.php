@@ -441,7 +441,7 @@ class PowerPrice extends IPSModule
         $response = $this->getContents(sprintf('https://api.awattar.%s/v1/marketdata?start=%s&end=%s', $market, $start * 1000, $end * 1000));
         $data = $response['body'];
         $headers = $response['header'];
-        
+
         // Validate that data is a string and valid JSON
         if (!is_string($data)) {
             $this->SendDebug('FetchFromAwattar - Error', 'Failed to fetch data or data is not a string', 0);
@@ -453,15 +453,15 @@ class PowerPrice extends IPSModule
             $this->SendDebug('FetchFromAwattar - HTTP Error', 'Non-200 response: ' . $headers[0] . ' - Body: ' . $data, 0);
             return json_encode([]);
         }
-        
+
         $this->SendDebug('FetchFromAwattar - Result', $data, 0);
-        
+
         $decodedData = json_decode($data, true);
         if ($decodedData === null || !isset($decodedData['data'])) {
             $this->SendDebug('FetchFromAwattar - Error', 'Invalid JSON response or missing data field', 0);
             return json_encode([]);
         }
-        
+
         return $this->NormalizeAndReduce($decodedData['data']);
     }
 
@@ -471,7 +471,7 @@ class PowerPrice extends IPSModule
         $response = $this->getContents(sprintf('https://tibber.com/de/api/lookup/price-overview?postalCode=%s', $postalCode));
         $dataJson = $response['body'];
         $headers = $response['header'];
-        
+
         if (!is_string($dataJson)) {
             $this->SendDebug('FetchFromTibber - Error', 'Failed to fetch data or data is not a string', 0);
             return json_encode([]);
@@ -482,7 +482,7 @@ class PowerPrice extends IPSModule
             $this->SendDebug('FetchFromTibber - HTTP Error', 'Non-200 response: ' . $headers[0] . ' - Body: ' . $dataJson, 0);
             return json_encode([]);
         }
-        
+
         $this->SendDebug('FetchFromTibber - Result', $dataJson, 0);
 
         $resolution = $this->ReadPropertyInteger('PriceResolution');
