@@ -4,12 +4,12 @@ declare(strict_types=1);
 include_once __DIR__ . '/timetest.php';
 include_once __DIR__ . '/getcontentstest.php';
 
-class PowerPrice extends IPSModule
+class PowerPrice extends IPSModuleStrict
 {
     use TestTime;
     use TestGetContents;
 
-    public function Create()
+    public function Create() : void
     {
         $this->RegisterPropertyString('Provider', 'aWATTar');
         $this->RegisterPropertyString('EPEXSpotToken', '');
@@ -27,7 +27,10 @@ class PowerPrice extends IPSModule
             IPS_SetVariableProfileText('Cent', '', ' ct');
         }
 
-        $this->RegisterVariableString('MarketData', $this->Translate('Market Data'), '~TextBox', 0);
+        $created = $this->RegisterVariableString('MarketData', $this->Translate('Market Data'), '~TextBox', 0);
+        if ($created) {
+            $this->SetValue('MarketData', '[]');
+        }
         $this->RegisterVariableFloat('CurrentPrice', $this->Translate('Current Price'), 'Cent', 1);
 
         $this->SetVisualizationType(1);
@@ -39,13 +42,13 @@ class PowerPrice extends IPSModule
         $this->RegisterTimer('UpdateCurrentPrice', 35000, 'SPX_UpdateCurrentPrice($_IPS["TARGET"]);');
     }
 
-    public function ApplyChanges()
+    public function ApplyChanges() : void
     {
         parent::ApplyChanges();
         $this->Update();
     }
 
-    public function GetConfigurationForm()
+    public function GetConfigurationForm() : string
     {
         // No helper here, we want to use the file in both testing and production
         $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
@@ -67,14 +70,14 @@ class PowerPrice extends IPSModule
         return json_encode($form);
     }
 
-    public function Update()
+    public function Update() : void
     {
         // Keep for backward compatibility, but use separate methods
         $this->UpdateMarketData();
         $this->UpdateCurrentPrice();
     }
 
-    public function UpdateMarketData()
+    public function UpdateMarketData() : void
     {
         $marketData = '[]';
         switch ($this->ReadPropertyString('Provider')) {
@@ -119,7 +122,7 @@ class PowerPrice extends IPSModule
         $this->UpdateCurrentPrice();
     }
 
-    public function UpdateCurrentPrice()
+    public function UpdateCurrentPrice() : void
     {
         $marketData = $this->GetValue('MarketData');
         $currentTime = $this->getTime();
@@ -148,7 +151,7 @@ class PowerPrice extends IPSModule
         $this->SetTimerInterval('UpdateCurrentPrice', max(($nextUpdate - $this->getTime()) * 1000, 1));
     }
 
-    public function GetVisualizationTile()
+    public function GetVisualizationTile() : string
     {
         // Add static HTML content from file to make editing easier
         // No helper here, we want to use the file in both testing and production
@@ -167,7 +170,7 @@ class PowerPrice extends IPSModule
         return $module;
     }
 
-    public function UIChangeProvider(string $Provider)
+    public function UIChangeProvider(string $Provider) : void
     {
         $this->UpdateFormField('aWATTarMarket', 'visible', $Provider === 'aWATTar');
         $this->UpdateFormField('TibberPostalCode', 'visible', $Provider === 'Tibber');
@@ -186,7 +189,7 @@ class PowerPrice extends IPSModule
         $this->UpdateFormField('PriceTax', 'visible', $Provider != 'Tibber');
     }
 
-    private function NormalizeAndReduce($data)
+    private function NormalizeAndReduce($data) : string
     {
         $this->SendDebug('NormalizeAndReduce - Input Data', json_encode($data), 0);
         $result = [];
@@ -242,7 +245,7 @@ class PowerPrice extends IPSModule
         return json_encode($result);
     }
 
-    private function FetchFromEntsoe($market)
+    private function FetchFromEntsoe($market) : string
     {
         switch ($market) {
             case 'AT':
@@ -310,7 +313,7 @@ class PowerPrice extends IPSModule
                 break;
             default:
                 $this->SendDebug('FetchFromEntsoe - Unsupported Market', $market, 0);
-                return [];
+                return json_encode([]);
         }
         $start = mktime(0, 0, 0, intval(date('m', $this->getTime())), intval(date('d', $this->getTime())), intval(date('Y', $this->getTime())));
         $end = strtotime('+2 days', $start);
@@ -433,7 +436,7 @@ class PowerPrice extends IPSModule
         return $this->NormalizeAndReduce($result);
     }
 
-    private function FetchFromAwattar($market)
+    private function FetchFromAwattar($market) : string
     {
         $start = mktime(0, 0, 0, intval(date('m', $this->getTime())), intval(date('d', $this->getTime())), intval(date('Y', $this->getTime())));
         $end = strtotime('+2 days', $start);
@@ -465,7 +468,7 @@ class PowerPrice extends IPSModule
         return $this->NormalizeAndReduce($decodedData['data']);
     }
 
-    private function FetchFromTibber($postalCode)
+    private function FetchFromTibber($postalCode) : string
     {
         $this->SendDebug('FetchFromTibber - Postal Code', $postalCode, 0);
         $response = $this->getContents(sprintf('https://tibber.com/de/api/lookup/price-overview?postalCode=%s', $postalCode));
@@ -511,7 +514,7 @@ class PowerPrice extends IPSModule
         return json_encode($result);
     }
 
-    private function GetPriceResolution($data = null, $startField = 'start', $endField = 'end', $divisorToSeconds = 1)
+    private function GetPriceResolution($data = null, $startField = 'start', $endField = 'end', $divisorToSeconds = 1) : int
     {
         if ($data === null) {
             $data = json_decode($this->GetValue('MarketData'), true);

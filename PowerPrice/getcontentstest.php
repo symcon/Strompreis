@@ -7,12 +7,12 @@ if (defined('PHPUNIT_TESTSUITE')) {
     {
         private $contentsOverrides = [];
 
-        public function SetContentsOverride(string $url, string $contents)
+        public function SetContentsOverride(string $url, string $contents) : void
         {
             $this->contentsOverrides[$url] = $contents;
         }
 
-        protected function getContents($url)
+        protected function getContents($url) : array
         {
             $override = $this->contentsOverrides[$url] ?? null;
             if ($override !== null) {
@@ -32,7 +32,7 @@ if (defined('PHPUNIT_TESTSUITE')) {
 } else {
     trait TestGetContents
     {
-        protected function getContents($url)
+        protected function getContents($url) : array
         {
             $options = [
                 'http' => [
