@@ -9,7 +9,7 @@ class PowerPrice extends IPSModuleStrict
     use TestTime;
     use TestGetContents;
 
-    public function Create() : void
+    public function Create(): void
     {
         $this->RegisterPropertyString('Provider', 'aWATTar');
         $this->RegisterPropertyString('EPEXSpotToken', '');
@@ -42,13 +42,13 @@ class PowerPrice extends IPSModuleStrict
         $this->RegisterTimer('UpdateCurrentPrice', 35000, 'SPX_UpdateCurrentPrice($_IPS["TARGET"]);');
     }
 
-    public function ApplyChanges() : void
+    public function ApplyChanges(): void
     {
         parent::ApplyChanges();
         $this->Update();
     }
 
-    public function GetConfigurationForm() : string
+    public function GetConfigurationForm(): string
     {
         // No helper here, we want to use the file in both testing and production
         $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
@@ -70,14 +70,14 @@ class PowerPrice extends IPSModuleStrict
         return json_encode($form);
     }
 
-    public function Update() : void
+    public function Update(): void
     {
         // Keep for backward compatibility, but use separate methods
         $this->UpdateMarketData();
         $this->UpdateCurrentPrice();
     }
 
-    public function UpdateMarketData() : void
+    public function UpdateMarketData(): void
     {
         $marketData = '[]';
         switch ($this->ReadPropertyString('Provider')) {
@@ -122,7 +122,7 @@ class PowerPrice extends IPSModuleStrict
         $this->UpdateCurrentPrice();
     }
 
-    public function UpdateCurrentPrice() : void
+    public function UpdateCurrentPrice(): void
     {
         $marketData = $this->GetValue('MarketData');
         $currentTime = $this->getTime();
@@ -151,7 +151,7 @@ class PowerPrice extends IPSModuleStrict
         $this->SetTimerInterval('UpdateCurrentPrice', max(($nextUpdate - $this->getTime()) * 1000, 1));
     }
 
-    public function GetVisualizationTile() : string
+    public function GetVisualizationTile(): string
     {
         // Add static HTML content from file to make editing easier
         // No helper here, we want to use the file in both testing and production
@@ -170,7 +170,7 @@ class PowerPrice extends IPSModuleStrict
         return $module;
     }
 
-    public function UIChangeProvider(string $Provider) : void
+    public function UIChangeProvider(string $Provider): void
     {
         $this->UpdateFormField('aWATTarMarket', 'visible', $Provider === 'aWATTar');
         $this->UpdateFormField('TibberPostalCode', 'visible', $Provider === 'Tibber');
@@ -189,7 +189,7 @@ class PowerPrice extends IPSModuleStrict
         $this->UpdateFormField('PriceTax', 'visible', $Provider != 'Tibber');
     }
 
-    private function NormalizeAndReduce($data) : string
+    private function NormalizeAndReduce($data): string
     {
         $this->SendDebug('NormalizeAndReduce - Input Data', json_encode($data), 0);
         $result = [];
@@ -245,7 +245,7 @@ class PowerPrice extends IPSModuleStrict
         return json_encode($result);
     }
 
-    private function FetchFromEntsoe($market) : string
+    private function FetchFromEntsoe($market): string
     {
         switch ($market) {
             case 'AT':
@@ -436,7 +436,7 @@ class PowerPrice extends IPSModuleStrict
         return $this->NormalizeAndReduce($result);
     }
 
-    private function FetchFromAwattar($market) : string
+    private function FetchFromAwattar($market): string
     {
         $start = mktime(0, 0, 0, intval(date('m', $this->getTime())), intval(date('d', $this->getTime())), intval(date('Y', $this->getTime())));
         $end = strtotime('+2 days', $start);
@@ -468,7 +468,7 @@ class PowerPrice extends IPSModuleStrict
         return $this->NormalizeAndReduce($decodedData['data']);
     }
 
-    private function FetchFromTibber($postalCode) : string
+    private function FetchFromTibber($postalCode): string
     {
         $this->SendDebug('FetchFromTibber - Postal Code', $postalCode, 0);
         $response = $this->getContents(sprintf('https://tibber.com/de/api/lookup/price-overview?postalCode=%s', $postalCode));
@@ -514,7 +514,7 @@ class PowerPrice extends IPSModuleStrict
         return json_encode($result);
     }
 
-    private function GetPriceResolution($data = null, $startField = 'start', $endField = 'end', $divisorToSeconds = 1) : int
+    private function GetPriceResolution($data = null, $startField = 'start', $endField = 'end', $divisorToSeconds = 1): int
     {
         if ($data === null) {
             $data = json_decode($this->GetValue('MarketData'), true);
