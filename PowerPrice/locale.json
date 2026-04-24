@@ -22,7 +22,8 @@
             "60 Minutes": "60 Minuten",
             "https://www.symcon.de/en/service/documentation/module-reference/power-price": "https://www.symcon.de/de/service/dokumentation/modulreferenz/strompreis",
             "??? (Not available yet)": "??? (Noch nicht verfügbar)",
-            "You can get a free ENTSO-E Security Token by following the tutorial here: https://transparencyplatform.zendesk.com/hc/en-us/articles/12845911031188-How-to-get-security-token": "Einen kostenlosen ENTSO-E Security Token erhalten Sie, indem Sie der Anleitung hier folgen: https://transparencyplatform.zendesk.com/hc/de/articles/12845911031188-How-to-get-security-token"
+            "You can get a free ENTSO-E Security Token by following the tutorial here: https://transparencyplatform.zendesk.com/hc/en-us/articles/12845911031188-How-to-get-security-token": "Einen kostenlosen ENTSO-E Security Token erhalten Sie, indem Sie der Anleitung hier folgen: https://transparencyplatform.zendesk.com/hc/de/articles/12845911031188-How-to-get-security-token",
+            "Error while requesting market data, keeping existing data": "Fehler beim Abrufen der Marktdaten, bestehende Daten werden beibehalten"
         }
     }
 }

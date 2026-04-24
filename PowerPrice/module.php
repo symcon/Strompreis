@@ -88,6 +88,13 @@ class PowerPrice extends IPSModule
                 $marketData = $this->FetchFromEntsoe($this->ReadPropertyString('EPEXSpotMarket'));
                 break;
         }
+
+        if (count(json_decode($marketData)) === 0) {
+            echo $this->Translate('Error while requesting market data, keeping existing data');
+            $this->SetTimerInterval('UpdateMarketData', 5 * 60 * 1000); // Retry in 5 minutes
+            return;
+        }
+
         $this->UpdateVisualizationValue($marketData);
         $this->SetValue('MarketData', $marketData);
 
